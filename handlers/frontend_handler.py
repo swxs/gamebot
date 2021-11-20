@@ -6,10 +6,7 @@ from .base_handler import Base
 
 
 class FrontEnd(Base):
-    __name__ == "frontend"
-
-    def __init__(self):
-        pass
+    name = "frontend"
     
     @classmethod
     def get_point(cls, hwnd):

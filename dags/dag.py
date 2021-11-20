@@ -44,8 +44,9 @@ class DAG:
             self.diag.add_group(self)
             self.diag.add_node(self.start)
 
-    def set_handler(self, handler):
+    def initial(self, handler, hwnd):
         self.handler = handler
+        self.hwnd = hwnd
 
     def __enter__(self):
         setdiagram(self)
@@ -90,7 +91,7 @@ class DAG:
                     else:
                         node_ = node
 
-                    result = node_.func(self.handler)
+                    result = node_.func(self.handler, self.hwnd)
                     if result:
                         node_.diag.current = node_
                         self.current = node_

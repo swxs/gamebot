@@ -5,8 +5,7 @@ import win32ui
 from .base_handler import Base
 
 class BackEnd(Base):
-    def __init__(self):
-        pass
+    name = "backend"
     
     @classmethod
     def _get_window_point(cls, hwnd, point):

@@ -27,7 +27,8 @@ def run():
 
 
 if __name__ == "__main__":
-    dag.set_handler(handler)
+    hwnd = handler.get_hwnd("炉石传说")
+    dag.initial(handler, hwnd)
 
     for _ in dag:
         if _ == "finish":

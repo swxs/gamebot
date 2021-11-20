@@ -8,26 +8,39 @@ import win32con
 import win32ui
 import numpy as np
 
-class Base():
+import core
+
+
+class Base:
+    name = "base"
+    
+    @classmethod
+    def get_file_path(cls, filename):
+        return os.path.join(core.FIEL_PATH, filename)
+
     @classmethod
     def is_visible_tree(cls, hwnd):
         return win32gui.IsWindow(hwnd) and win32gui.IsWindowEnabled(hwnd) and win32gui.IsWindowVisible(hwnd)
-    
+
     @classmethod
     def get_hwnd_list(cls):
-        '''
+        """
         获取所有窗口句柄
-        '''
+        """
         hwnd_list = list()
+
         def _get_hwnd(hwnd, mouse):
             if Base.is_visible_tree(hwnd):
-                hwnd_list.append({
-                    "hwnd": hwnd,
-                    "title": win32gui.GetWindowText(hwnd),
-                })
+                hwnd_list.append(
+                    {
+                        "hwnd": hwnd,
+                        "title": win32gui.GetWindowText(hwnd),
+                    }
+                )
+
         win32gui.EnumWindows(_get_hwnd, 0)
         return hwnd_list
-    
+
     @classmethod
     def get_hwnd(cls, name):
         hwnd_list = Base.get_hwnd_list()
@@ -36,28 +49,24 @@ class Base():
                 return hwnd["hwnd"]
         else:
             return None
-    
+
     @classmethod
-    def get_children_hwnd(cls, parent_hwnd):        
-        '''     
+    def get_children_hwnd(cls, parent_hwnd):
+        """
         获得parent的所有子窗口句柄
         返回子窗口句柄列表
-        '''     
-        if not parent_hwnd:         
-            return      
+        """
+        if not parent_hwnd:
+            return
         hwndChildList = []
         try:
             win32gui.EnumChildWindows(
-                parent_hwnd, 
-                lambda hwnd, param: param.append(
-                    (hwnd, win32gui.GetWindowText(hwnd))
-                ),
-                hwndChildList
+                parent_hwnd, lambda hwnd, param: param.append((hwnd, win32gui.GetWindowText(hwnd))), hwndChildList
             )
         except:
             pass
         return hwndChildList
-    
+
     @classmethod
     def find_idxSubHandle(cls, pHandle, winClass, index=0):
         """
@@ -70,7 +79,7 @@ class Base():
             handle = win32gui.FindWindowEx(pHandle, handle, winClass, None)
             index -= 1
         return handle
-    
+
     @classmethod
     def find_subHandle(cls, pHandle, winClassList):
         """
@@ -83,7 +92,7 @@ class Base():
             return Base.find_idxSubHandle(pHandle, winClassList[0][0], winClassList[0][1])
         else:
             return Base.find_idxSubHandle(pHandle, winClassList[0][0], winClassList[0][1])
-        
+
     @classmethod
     def screen(cls, hwnd, filename):
         # 根据窗口句柄获取窗口的设备上下文DC（Divice Context）
@@ -92,7 +101,12 @@ class Base():
         mfcDC = win32ui.CreateDCFromHandle(hwndDC)
         mfcDC_handler = mfcDC.GetHandleAttrib()
         # 截图
-        win32gui.SendMessage(hwnd, win32con.WM_PRINT, mfcDC_handler,win32con.PRF_CLIENT | win32con.PRF_OWNED | win32con.PRF_ERASEBKGND | win32con.PRF_NONCLIENT)
+        win32gui.SendMessage(
+            hwnd,
+            win32con.WM_PRINT,
+            mfcDC_handler,
+            win32con.PRF_CLIENT | win32con.PRF_OWNED | win32con.PRF_ERASEBKGND | win32con.PRF_NONCLIENT,
+        )
         # mfcDC创建可兼容的DC
         saveDC = mfcDC.CreateCompatibleDC()
         # 创建bigmap准备保存图片
@@ -110,8 +124,8 @@ class Base():
         # 截取从左上角（0，0）长宽为（w，h）的图片
         saveDC.BitBlt((0, 0), (w, h), mfcDC, (0, 0), win32con.SRCCOPY)
         saveBitMap.SaveBitmapFile(saveDC, filename)
-        return cv2.imread(get_file_path('screen.png'))
-    
+        return cv2.imread(hwnd, filename)
+
     @classmethod
     def move_to(cls, hwnd, point):
         raise Exception("need")
@@ -119,7 +133,7 @@ class Base():
     @classmethod
     def left_click_at_point(cls, hwnd, point):
         raise Exception("need")
-    
+
     @classmethod
     def right_click_at_point(cls, hwnd, point):
         raise Exception("need")
@@ -127,9 +141,9 @@ class Base():
     @classmethod
     def find_ellement_and_click(cls, hwnd, file, speed=0.5, sens=0.4, tmp_x=0, tmp_y=0, click=True):
         try:
-            img = cls.screen()
+            img = cls.screen(hwnd, cls.get_file_path("screen.png"))
             gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-            template = cv2.imread(get_file_path(file), cv2.IMREAD_GRAYSCALE)
+            template = cv2.imread(cls.get_file_path(file), cv2.IMREAD_GRAYSCALE)
             w, h = template.shape[::-1]
             result = cv2.matchTemplate(gray_img, template, cv2.TM_CCOEFF_NORMED)
 
@@ -138,8 +152,8 @@ class Base():
                 pt = random.choice(list(zip(*loc[::-1])))
                 x = int((pt[0] * 2 + w + tmp_x) / 2)
                 y = int((pt[1] * 2 + h + tmp_y) / 2)
-                print("Found " + file, x, y)
-                cls.move_to(hwnd, (x, y))                
+                print(f"Found: {file} [({x}, {y})]")
+                cls.move_to(hwnd, (x, y))
                 time.sleep(0.2)
                 if click:
                     cls.left_click_at_point(hwnd, (x, y))
@@ -154,4 +168,3 @@ class Base():
     @classmethod
     def get_random_point(cls, point1, point2):
         return random.randint(point1[0], point2[0]), random.randint(point1[1], point2[1])
-    
