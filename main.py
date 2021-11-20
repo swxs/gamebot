@@ -2,10 +2,9 @@ import threading
 
 import core
 from handlers import handler_productor
-from dags.Hearthstone_Mercenaries_bot.one_one import one_one_dag
+from dags.Hearthstone_Mercenaries_bot.one_one import dag
 
 handler = handler_productor[core.HANDLER]
-dag = one_one_dag
 
 
 class ListenThread(threading.Thread):

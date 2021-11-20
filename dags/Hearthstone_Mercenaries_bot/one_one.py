@@ -51,7 +51,7 @@ def use_skill(handler, hwnd):
     return handler.find_ellement_and_click(
         hwnd,
         'heroes/11.Ragnaros/skill_2.png',
-        sens=0.6,
+        sens=0.7,
     )
 
 
@@ -69,7 +69,7 @@ def victory(handler, hwnd):
     return handler.find_ellement_and_click(
         hwnd,
         'chekers/win.png',
-        sens=0.65,
+        sens=0.7,
     )
 
 
@@ -80,7 +80,7 @@ def choose_treasure(handler, hwnd):
         'UI_ellements/PickOneTreasure.png',
         sens=0.6,
         tmp_x=0,
-        tmp_y=200,
+        tmp_y=600,
     )
     if result:
         return handler.find_ellement_and_click(
@@ -99,7 +99,7 @@ def replace_treasure(handler, hwnd):
         'UI_ellements/KeepOrReplaceTreasurepng.png',
         sens=0.6,
         tmp_x=0,
-        tmp_y=200,
+        tmp_y=600,
     )
     if result:
         return handler.find_ellement_and_click(
@@ -196,7 +196,7 @@ def get_presents(handler, hwnd):
     return handler.find_ellement_and_click(
         hwnd,
         'UI_ellements/presents_thing.png',
-        sens=0.6,
+        sens=0.5,
     )
 
 
@@ -205,7 +205,7 @@ def finish_presents(handler, hwnd):
     return handler.find_ellement_and_click(
         hwnd,
         'buttons/done.png',
-        sens=0.5,
+        sens=0.6,
     )
 
 
@@ -218,58 +218,55 @@ def finish(handler, hwnd):
     )
 
 
-one_one_dag = DAG(name="main")
-with one_one_dag as dag:
+dag = DAG(name="main")
+with dag as dag:
     start = Node("start", start)
     choose_party = Node("choose_party", choose_party)
-    first_time_choose = Node("first_time_choose", first_time_choose)
-    start_battle = Node("start_battle", start_battle)
-    play_hero = Node("play_hero", play_hero)
-    use_skill = Node("use_skill", use_skill)
-    finish_turn = Node("finish_turn", finish_turn)
-    victory = Node("victory", victory)
     visit = Node("visit", visit)
     find_next_battle = Node("find_next_battle", find_next_battle)
-    choose_treasure = Node("choose_treasure", choose_treasure)
-    replace_treasure = Node("replace_treasure", replace_treasure)
-    get_presents = Node("get_presents", get_presents)
-    finish_presents = Node("finish_presents", finish_presents)
-    finish = Node("finish", finish)
 
     first_battle_dag = DAG(name="first_battle_dag")
     battle_dag = DAG(name="battle_dag")
-    victory_dag = DAG(name="victory_dag")
-    choose_treasure_dag = DAG(name="choose_treasure_dag")
-    replace_treasure_dag = DAG(name="replace_treasure_dag")
-    visit_dag = DAG(name="visit_dag")
-    find_next_battle_dag = DAG(name="find_next_battle_dag")
-    finish_dag = DAG(name="finish_dag")
 
     with first_battle_dag as first_battle_dag:
+        first_time_choose = Node("first_time_choose", first_time_choose)
+
         first_battle_dag >> first_time_choose >> battle_dag
 
     with battle_dag as battle_dag:
-        battle_dag >> start_battle >> play_hero >> use_skill >> finish_turn >> [
-            victory_dag,
-            use_skill,
-        ]
+        start_battle = Node("start_battle", start_battle)
+        play_hero = Node("play_hero", play_hero)
+        use_skill = Node("use_skill", use_skill)
+        finish_turn = Node("finish_turn", finish_turn)
 
-    with victory_dag as victory_dag:
-        victory_dag >> victory >> [choose_treasure_dag, replace_treasure_dag, finish_dag]
+        victory_dag = DAG(name="victory_dag")
 
-    with visit_dag as visit_dag:
-        visit_dag >> visit >> find_next_battle_dag
+        with victory_dag as victory_dag:
+            victory = Node("victory", victory)
 
-    with find_next_battle_dag as find_next_battle_dag:
-        find_next_battle_dag >> find_next_battle >> battle_dag
+            choose_treasure_dag = DAG(name="choose_treasure_dag")
+            replace_treasure_dag = DAG(name="replace_treasure_dag")
+            finish_dag = DAG(name="finish_dag")
 
-    with choose_treasure_dag as choose_treasure_dag:
-        choose_treasure_dag >> choose_treasure >> [battle_dag, visit_dag, find_next_battle_dag]
+            with choose_treasure_dag as choose_treasure_dag:
+                choose_treasure = Node("choose_treasure", choose_treasure)
 
-    with replace_treasure_dag as replace_treasure_dag:
-        replace_treasure_dag >> replace_treasure >> [battle_dag, visit_dag, find_next_battle_dag]
+                choose_treasure_dag >> choose_treasure
 
-    with finish_dag as finish_dag:
-        finish_dag >> get_presents >> get_presents >> finish_presents >> finish
+            with replace_treasure_dag as replace_treasure_dag:
+                replace_treasure = Node("replace_treasure", replace_treasure)
 
-    dag >> start >> choose_party >> battle_dag
+                replace_treasure_dag >> replace_treasure
+
+            with finish_dag as finish_dag:
+                get_presents = Node("get_presents", get_presents)
+                finish_presents = Node("finish_presents", finish_presents)
+                finish = Node("finish", finish)
+
+                finish_dag >> get_presents >> get_presents >> finish_presents >> finish
+
+            victory_dag >> victory >> [choose_treasure_dag, replace_treasure_dag, finish_dag]
+
+        battle_dag >> start_battle >> play_hero >> use_skill >> finish_turn >> [victory_dag, use_skill]
+
+    dag >> start >> choose_party >> battle_dag >> visit >> find_next_battle >> battle_dag >> battle_dag
