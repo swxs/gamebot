@@ -1,8 +1,7 @@
 import os
 import core
 from commons.Helper_productor import Productor
-from .base_handler import Base
-
+from .dag import DAG
 
 class DagProductor(Productor):
     def __init__(
@@ -18,4 +17,4 @@ class DagProductor(Productor):
 
 
 base_path = os.path.join(core.SITE_ROOT, "dags")
-handler_productor = DagProductor(Base, base_path, "*.py", temp_module=Base)
+dag_productor = DagProductor(DAG, base_path, "*.py", temp_module=DAG)

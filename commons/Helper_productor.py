@@ -7,9 +7,6 @@ import os
 import sys
 from fnmatch import fnmatch
 from importlib import import_module
-from commons import log_utils
-
-logger = log_utils.get_logging("common.Productor")
 
 class NoModule(Exception):
     pass
@@ -120,6 +117,7 @@ class Productor(object):
                                 ):
                                     self._load_module(obj, module_path)
                         except Exception as e:
-                            logger.exception(e, f"full_path: {full_path}")
+                            print(f"full_path: {full_path}")
+                            # logger.exception(e, f"full_path: {full_path}")
         else:
             pass

@@ -2,11 +2,11 @@ import threading
 
 import core
 from handlers import handler_productor
-from dags import dag_productor
-
+from dags.Hearthstone_Mercenaries_bot.one_one import one_one_dag
 
 handler = handler_productor[core.HANDLER]
-dag = dag_productor[core.DAG]
+dag = one_one_dag
+
 
 class ListenThread(threading.Thread):
     def __init__(self):
@@ -20,9 +20,15 @@ class ListenThread(threading.Thread):
             if self.stopped:
                 break
 
+
 def run():
     hThread = ListenThread()
     hThread.start()
 
+
 if __name__ == "__main__":
-    run()
+    dag.set_handler(handler)
+
+    for _ in dag:
+        if _ == "finish":
+            print(_)

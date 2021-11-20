@@ -21,11 +21,14 @@ def setdiagram(diagram):
 
 
 class DAG:
+    __name__ == "base"
+
     def __init__(self, name=None, diag=None):
         if name:
             self.name = name
         else:
             self.name = str(uuid.uuid4()).replace("-", "")
+        self.handler = None
         self.edge = []
         self.nodes = dict()
         self.edges = dict()
@@ -40,6 +43,9 @@ class DAG:
         if self.diag:
             self.diag.add_group(self)
             self.diag.add_node(self.start)
+
+    def set_handler(self, handler):
+        self.handler = handler
 
     def __enter__(self):
         setdiagram(self)
@@ -76,7 +82,7 @@ class DAG:
                     end_node_list.append(node)
 
                 for edge in edges:
-                    if not edge.func():
+                    if not edge.func(self.handler):
                         break
                 else:
                     if node.func is None:
@@ -84,7 +90,7 @@ class DAG:
                     else:
                         node_ = node
 
-                    result = node_.func()
+                    result = node_.func(self.handler)
                     if result:
                         node_.diag.current = node_
                         self.current = node_
