@@ -1,8 +1,13 @@
-from ..dag import DAG, Node
+import time
+from ..dag import DAG, Node, Selector
+
+BATTLE_TIMES = 0
+VISIT_TIMES = 0
 
 
 def start(handler, hwnd):
     # 开始
+    time.sleep(0.2)
     return handler.find_ellement_and_click(
         hwnd,
         'buttons/start.png',
@@ -12,6 +17,7 @@ def start(handler, hwnd):
 
 def choose_party(handler, hwnd):
     # 选择队伍
+    time.sleep(0.2)
     return handler.find_ellement_and_click(
         hwnd,
         'buttons/start1.png',
@@ -30,15 +36,22 @@ def first_time_choose(handler, hwnd):
 
 def start_battle(handler, hwnd):
     # 开始副本
-    return handler.find_ellement_and_click(
+    global BATTLE_TIMES
+
+    time.sleep(1)
+    result = handler.find_ellement_and_click(
         hwnd,
         'buttons/play.png',
         sens=0.5,
     )
+    if result:
+        BATTLE_TIMES += 1
+    return result
 
 
 def play_hero(handler, hwnd):
     # 放下英雄
+    time.sleep(5)
     return handler.find_ellement_and_click(
         hwnd,
         'buttons/hero_0_2.png',
@@ -48,6 +61,7 @@ def play_hero(handler, hwnd):
 
 def use_skill(handler, hwnd):
     # 使用技能
+    time.sleep(5)
     return handler.find_ellement_and_click(
         hwnd,
         'heroes/11.Ragnaros/skill_2.png',
@@ -57,6 +71,7 @@ def use_skill(handler, hwnd):
 
 def finish_turn(handler, hwnd):
     # 结束回合
+    time.sleep(0.5)
     return handler.find_ellement_and_click(
         hwnd,
         'buttons/startbattle.png',
@@ -66,6 +81,7 @@ def finish_turn(handler, hwnd):
 
 def victory(handler, hwnd):
     # 胜利
+    time.sleep(1)
     return handler.find_ellement_and_click(
         hwnd,
         'chekers/win.png',
@@ -75,6 +91,7 @@ def victory(handler, hwnd):
 
 def choose_treasure(handler, hwnd):
     # 选择宝藏
+    time.sleep(1)
     result = handler.find_ellement_and_click(
         hwnd,
         'UI_ellements/PickOneTreasure.png',
@@ -83,6 +100,7 @@ def choose_treasure(handler, hwnd):
         tmp_y=600,
     )
     if result:
+        time.sleep(0.5)
         return handler.find_ellement_and_click(
             hwnd,
             'buttons/take.png',
@@ -94,6 +112,7 @@ def choose_treasure(handler, hwnd):
 
 def replace_treasure(handler, hwnd):
     # 替换宝藏
+    time.sleep(1)
     result = handler.find_ellement_and_click(
         hwnd,
         'UI_ellements/KeepOrReplaceTreasurepng.png',
@@ -102,6 +121,7 @@ def replace_treasure(handler, hwnd):
         tmp_y=600,
     )
     if result:
+        time.sleep(0.5)
         return handler.find_ellement_and_click(
             hwnd,
             'buttons/replace.png',
@@ -113,6 +133,9 @@ def replace_treasure(handler, hwnd):
 
 def visit(handler, hwnd):
     # 治疗
+    global VISIT_TIMES
+
+    time.sleep(0.5)
     result = handler.find_ellement_and_click(
         hwnd,
         'UI_ellements/bat4.png',
@@ -120,6 +143,8 @@ def visit(handler, hwnd):
         sens=0.7,
     )
     if result:
+        time.sleep(0.5)
+        VISIT_TIMES += 1
         return handler.find_ellement_and_click(
             hwnd,
             'buttons/visit.png',
@@ -196,7 +221,7 @@ def get_presents(handler, hwnd):
     return handler.find_ellement_and_click(
         hwnd,
         'UI_ellements/presents_thing.png',
-        sens=0.5,
+        sens=0.55,
     )
 
 
@@ -205,7 +230,7 @@ def finish_presents(handler, hwnd):
     return handler.find_ellement_and_click(
         hwnd,
         'buttons/done.png',
-        sens=0.6,
+        sens=0.55,
     )
 
 
@@ -218,15 +243,35 @@ def finish(handler, hwnd):
     )
 
 
+def second_battle(handler, hwnd):
+    global BATTLE_TIMES, VISIT_TIMES
+    return BATTLE_TIMES == 1 and VISIT_TIMES == 1
+
+
+def third_battle(handler, hwnd):
+    global BATTLE_TIMES
+    return BATTLE_TIMES == 2
+
+
+def end(handler, hwnd):
+    global BATTLE_TIMES, VISIT_TIMES
+    BATTLE_TIMES = 0
+    VISIT_TIMES = 0
+
+
 dag = DAG(name="main")
 with dag as dag:
+    first_battle_dag = DAG(name="first_battle_dag")
+    battle_dag = DAG(name="battle_dag")
+
     start = Node("start", start)
     choose_party = Node("choose_party", choose_party)
     visit = Node("visit", visit)
     find_next_battle = Node("find_next_battle", find_next_battle)
+    end = Node("end", end)
 
-    first_battle_dag = DAG(name="first_battle_dag")
-    battle_dag = DAG(name="battle_dag")
+    second_battle = Selector("second_battle", second_battle)
+    third_battle = Selector("third_battle", third_battle)
 
     with first_battle_dag as first_battle_dag:
         first_time_choose = Node("first_time_choose", first_time_choose)
@@ -269,4 +314,4 @@ with dag as dag:
 
         battle_dag >> start_battle >> play_hero >> use_skill >> finish_turn >> [victory_dag, use_skill]
 
-    dag >> start >> choose_party >> battle_dag >> visit >> find_next_battle >> battle_dag >> battle_dag
+    dag >> start >> choose_party >> battle_dag >> visit >> find_next_battle >> battle_dag >> second_battle >> battle_dag >> third_battle >> end

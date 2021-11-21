@@ -26,9 +26,9 @@ def run():
 
 
 if __name__ == "__main__":
-    hwnd = handler.get_hwnd("炉石传说")
-    dag.initial(handler, hwnd)
-
-    for _ in dag:
-        if _ == "finish":
-            print(_)
+    hwnd = handler.get_hwnd("Hearthstone")
+    dag.setup(handler, hwnd)
+    while True:
+        for _ in dag:
+            if _ == "end":
+                print(_)
