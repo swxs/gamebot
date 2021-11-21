@@ -92,6 +92,7 @@ class DAG:
             for selector_list, node in next_list:
                 if need_block_sub and node.diag != self:
                     end_node_list.append(node)
+                    continue
 
                 # 子循环节点则使用其初始节点代替判断
                 if node.func is None:

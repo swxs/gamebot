@@ -42,7 +42,7 @@ def start_battle(handler, hwnd):
     result = handler.find_ellement_and_click(
         hwnd,
         'buttons/play.png',
-        sens=0.5,
+        sens=0.45,
     )
     if result:
         BATTLE_TIMES += 1
@@ -51,7 +51,7 @@ def start_battle(handler, hwnd):
 
 def play_hero(handler, hwnd):
     # 放下英雄
-    time.sleep(5)
+    time.sleep(3)
     return handler.find_ellement_and_click(
         hwnd,
         'buttons/hero_0_2.png',
@@ -61,7 +61,7 @@ def play_hero(handler, hwnd):
 
 def use_skill(handler, hwnd):
     # 使用技能
-    time.sleep(5)
+    time.sleep(3)
     return handler.find_ellement_and_click(
         hwnd,
         'heroes/11.Ragnaros/skill_2.png',
@@ -71,7 +71,7 @@ def use_skill(handler, hwnd):
 
 def finish_turn(handler, hwnd):
     # 结束回合
-    time.sleep(0.5)
+    time.sleep(1)
     return handler.find_ellement_and_click(
         hwnd,
         'buttons/startbattle.png',
@@ -144,13 +144,15 @@ def visit(handler, hwnd):
     )
     if result:
         time.sleep(0.5)
-        VISIT_TIMES += 1
-        return handler.find_ellement_and_click(
+        result = handler.find_ellement_and_click(
             hwnd,
             'buttons/visit.png',
             speed=0.5,
             sens=0.6,
         )
+        if result:
+            VISIT_TIMES += 1
+        return result
     else:
         return False
 
@@ -230,7 +232,7 @@ def finish_presents(handler, hwnd):
     return handler.find_ellement_and_click(
         hwnd,
         'buttons/done.png',
-        sens=0.55,
+        sens=0.5,
     )
 
 
@@ -241,6 +243,11 @@ def finish(handler, hwnd):
         'buttons/finishok.png',
         sens=0.7,
     )
+
+
+def first_battle(handler, hwnd):
+    global VISIT_TIMES
+    return VISIT_TIMES == 0
 
 
 def second_battle(handler, hwnd):
@@ -270,6 +277,7 @@ with dag as dag:
     find_next_battle = Node("find_next_battle", find_next_battle)
     end = Node("end", end)
 
+    first_battle = Selector("first_battle", first_battle)
     second_battle = Selector("second_battle", second_battle)
     third_battle = Selector("third_battle", third_battle)
 
@@ -314,4 +322,4 @@ with dag as dag:
 
         battle_dag >> start_battle >> play_hero >> use_skill >> finish_turn >> [victory_dag, use_skill]
 
-    dag >> start >> choose_party >> battle_dag >> visit >> find_next_battle >> battle_dag >> second_battle >> battle_dag >> third_battle >> end
+    dag >> start >> choose_party >> battle_dag >> first_battle >> visit >> find_next_battle >> battle_dag >> second_battle >> battle_dag >> third_battle >> end
