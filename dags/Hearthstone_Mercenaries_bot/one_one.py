@@ -42,7 +42,7 @@ def start_battle(handler, hwnd):
     result = handler.find_ellement_and_click(
         hwnd,
         'buttons/play.png',
-        sens=0.45,
+        sens=0.5,
     )
     if result:
         BATTLE_TIMES += 1
@@ -85,7 +85,7 @@ def victory(handler, hwnd):
     return handler.find_ellement_and_click(
         hwnd,
         'chekers/win.png',
-        sens=0.7,
+        sens=0.65,
     )
 
 
@@ -171,7 +171,7 @@ def find_next_battle(handler, hwnd):
             hwnd,
             'buttons/play.png',
             speed=0.5,
-            sens=0.6,
+            sens=0.5,
             click=False,
         )
         if can_click:
@@ -190,7 +190,7 @@ def find_next_battle(handler, hwnd):
             hwnd,
             'buttons/play.png',
             speed=0.5,
-            sens=0.6,
+            sens=0.5,
             click=False,
         )
         if can_click:
@@ -209,7 +209,7 @@ def find_next_battle(handler, hwnd):
             hwnd,
             'buttons/play.png',
             speed=0.5,
-            sens=0.6,
+            sens=0.5,
             click=False,
         )
         if can_click:
@@ -245,9 +245,19 @@ def finish(handler, hwnd):
     )
 
 
+def can_battle(handler, hwnd):
+    return handler.find_ellement_and_click(
+        hwnd,
+        'buttons/play.png',
+        speed=0.5,
+        sens=0.5,
+        click=False,
+    )
+
+
 def first_battle(handler, hwnd):
-    global VISIT_TIMES
-    return VISIT_TIMES == 0
+    global BATTLE_TIMES, VISIT_TIMES
+    return BATTLE_TIMES == 1 and VISIT_TIMES == 0
 
 
 def second_battle(handler, hwnd):
@@ -256,14 +266,20 @@ def second_battle(handler, hwnd):
 
 
 def third_battle(handler, hwnd):
-    global BATTLE_TIMES
-    return BATTLE_TIMES == 2
+    global BATTLE_TIMES, VISIT_TIMES
+    return BATTLE_TIMES == 2 and VISIT_TIMES == 1
+
+
+def end_battle(handler, hwnd):
+    global BATTLE_TIMES, VISIT_TIMES
+    return BATTLE_TIMES == 3 and VISIT_TIMES == 1
 
 
 def end(handler, hwnd):
     global BATTLE_TIMES, VISIT_TIMES
     BATTLE_TIMES = 0
     VISIT_TIMES = 0
+    return True
 
 
 dag = DAG(name="main")
@@ -275,11 +291,13 @@ with dag as dag:
     choose_party = Node("choose_party", choose_party)
     visit = Node("visit", visit)
     find_next_battle = Node("find_next_battle", find_next_battle)
+    can_battle = Node("can_battle", can_battle)
     end = Node("end", end)
 
     first_battle = Selector("first_battle", first_battle)
     second_battle = Selector("second_battle", second_battle)
     third_battle = Selector("third_battle", third_battle)
+    end_battle = Selector("end_battle", end_battle)
 
     with first_battle_dag as first_battle_dag:
         first_time_choose = Node("first_time_choose", first_time_choose)
@@ -322,4 +340,4 @@ with dag as dag:
 
         battle_dag >> start_battle >> play_hero >> use_skill >> finish_turn >> [victory_dag, use_skill]
 
-    dag >> start >> choose_party >> battle_dag >> first_battle >> visit >> find_next_battle >> battle_dag >> second_battle >> battle_dag >> third_battle >> end
+    dag >> start >> choose_party >> battle_dag >> first_battle >> visit >> find_next_battle >> battle_dag >> third_battle >> can_battle >> battle_dag >> end_battle >> end
