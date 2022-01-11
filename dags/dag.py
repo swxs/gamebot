@@ -38,7 +38,6 @@ class DAG:
 
         self.current_selector_list = []
         self.current = self.start
-        self.stack = deque()
 
         # 对于最顶层节点self.diag is None, 否则为其父节点
         if diag:
@@ -219,6 +218,18 @@ class DAG:
                 string += f"== {_node.diag.name}.{_node.name}\n"
 
         return string
+
+    def copy(self, name):
+        copyed_dag = DAG(name=name, diag=self.diag)
+
+        copyed_dag.dags = self.dags
+        copyed_dag.nodes = self.nodes
+        copyed_dag.selectors = self.selectors
+
+        for (selector, start_node) in self.start.next_list:
+            copyed_dag.connect(copyed_dag.start, start_node)
+
+        return copyed_dag
 
 
 class Node:

@@ -2,7 +2,8 @@ import threading
 
 import core
 from handlers import handler_productor
-from dags.Hearthstone_Mercenaries_bot.one_one import dag
+# from dags.Hearthstone_Mercenaries_bot.one_one import dag
+from dags.test_bot.run import dag
 
 handler = handler_productor[core.HANDLER]
 
