@@ -1,24 +1,41 @@
 import threading
 
 import core
+import importlib
 from handlers import handler_productor
-# from dags.Hearthstone_Mercenaries_bot.one_one import dag
-from dags.test_bot.run import dag
+
 
 handler = handler_productor[core.HANDLER]
+
+if core.NAME is None:
+    print(f"需要输入名称：")
+    exit(1)
+
+hwnd = handler.get_hwnd(core.NAME)
+
+module = importlib.import_module(f'dags.{core.DAG}')
+dag = module.dag
+dag.setup(handler, hwnd)
 
 
 class ListenThread(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
         self.stopped = False
+        self.turn = 0
 
     def run(self):
-        for _ in dag:
-            if _ == "finish":
+        while not self.stopped:
+            for _ in dag:
                 print(_)
-            if self.stopped:
-                break
+                if _ == "end":
+                    self.turn += 1
+                    print(self.turn)
+                    if self.turn == core.NUMBER:
+                        self.stopped = True
+
+                if self.stopped:
+                    break
 
 
 def run():
@@ -27,9 +44,4 @@ def run():
 
 
 if __name__ == "__main__":
-    hwnd = handler.get_hwnd("Hearthstone")
-    dag.setup(handler, hwnd)
-    while True:
-        for _ in dag:
-            if _ == "end":
-                print(_)
+    run()
