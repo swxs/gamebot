@@ -7,13 +7,26 @@ import win32gui
 import win32con
 import win32ui
 import numpy as np
+import functools
 
 import core
 
 
+@functools.lru_cache
+def get_template_info(file):
+    template = cv2.imread(file, cv2.IMREAD_GRAYSCALE)
+    w, h = template.shape[::-1]
+    return template, w, h
+
+
+def diff_image(img, template, sens=0.8):
+    result = cv2.matchTemplate(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY), template, cv2.TM_CCOEFF_NORMED)
+    return np.where(result >= sens)
+
+
 class Base:
     name = "base"
-    
+
     @classmethod
     def get_file_path(cls, filename):
         return os.path.join(core.FIEL_PATH, filename)
@@ -141,13 +154,22 @@ class Base:
     @classmethod
     def find_ellement_and_click(cls, hwnd, file, speed=0.5, sens=0.4, tmp_x=0, tmp_y=0, click=True):
         try:
-            img = cls.screen(hwnd, cls.get_file_path("screen.png"))
-            gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-            template = cv2.imread(cls.get_file_path(file), cv2.IMREAD_GRAYSCALE)
-            w, h = template.shape[::-1]
-            result = cv2.matchTemplate(gray_img, template, cv2.TM_CCOEFF_NORMED)
+            template, w, h = get_template_info(file)
+            loc = np.where(
+                cv2.matchTemplate(
+                    cv2.cvtColor(
+                        cls.screen(
+                            hwnd,
+                            cls.get_file_path("screen.png"),
+                        ),
+                        cv2.COLOR_BGR2GRAY,
+                    ),
+                    template,
+                    cv2.TM_CCOEFF_NORMED,
+                )
+                >= sens
+            )
 
-            loc = np.where(result >= sens)
             if len(loc[0]) != 0:
                 pt = random.choice(list(zip(*loc[::-1])))
                 x = int((pt[0] * 2 + w + tmp_x) / 2)

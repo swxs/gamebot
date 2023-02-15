@@ -13,9 +13,7 @@ class PyAuto(Base):
 
     @classmethod
     def screen(cls, hwnd, filename):
-        sct = mss.mss()
-        filename = sct.shot(mon=1, output=filename)
-        return cv2.imread(filename)
+        return cv2.imread(mss.mss().shot(mon=1, output=filename))
 
     @classmethod
     def move_to(cls, hwnd, point, speed=0.5):
