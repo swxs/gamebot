@@ -1,4 +1,4 @@
-from dags.dag import DAG, Node
+from dags.dag import Group, Node
 import random
 import time
 
@@ -104,10 +104,11 @@ def end(handler, hwnd):
     return True
 
 
-dag = DAG(name="main")
-with dag as dag:
-    first_battle_dag = DAG(name="first_battle_dag")
-    battle_dag = DAG(name="battle_dag")
+group = Group(name="main")
+
+with group as group:
+    first_battle_dag = Group(name="first_battle_dag")
+    battle_dag = Group(name="battle_dag")
 
     start = Node("start", start)
     choose_party = Node("choose_party", choose_party)
@@ -127,14 +128,14 @@ with dag as dag:
         use_skill = Node("use_skill", use_skill)
         finish_turn = Node("finish_turn", finish_turn)
 
-        victory_dag = DAG(name="victory_dag")
+        victory_dag = Group(name="victory_dag")
 
         with victory_dag as victory_dag:
             victory = Node("victory", victory)
 
-            choose_treasure_dag = DAG(name="choose_treasure_dag")
-            replace_treasure_dag = DAG(name="replace_treasure_dag")
-            finish_dag = DAG(name="finish_dag")
+            choose_treasure_dag = Group(name="choose_treasure_dag")
+            replace_treasure_dag = Group(name="replace_treasure_dag")
+            finish_dag = Group(name="finish_dag")
 
             with choose_treasure_dag as choose_treasure_dag:
                 choose_treasure = Node("choose_treasure", choose_treasure)
@@ -155,27 +156,23 @@ with dag as dag:
 
             victory_dag >> victory >> [choose_treasure_dag, replace_treasure_dag, finish_dag]
 
-        (battle_dag >> start_battle >> play_hero >> use_skill >> finish_turn >> [victory_dag, use_skill])
-
-    battle_dag_1 = battle_dag.copy(name="battle_dag_1")
-    battle_dag_2 = battle_dag.copy(name="battle_dag_2")
-    battle_dag_3 = battle_dag.copy(name="battle_dag_3")
+        battle_dag >> start_battle >> play_hero >> use_skill >> finish_turn >> [victory_dag, use_skill]
 
     (
         dag
         >> start
         >> choose_party
-        >> battle_dag_1
+        >> battle_dag
         >> visit
         >> find_next_battle
-        >> battle_dag_2
+        >> battle_dag
         >> can_battle
-        >> battle_dag_3
+        >> battle_dag
         >> end
     )
 
 
 if __name__ == "__main__":
     while True:
-        for _ in dag:
+        for _ in group:
             print(_)

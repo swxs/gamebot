@@ -7,22 +7,17 @@ from .base_handler import Base
 class PyAuto(Base):
     name = "pyauto"
 
-    @classmethod
-    def get_point(cls, hwnd):
+    def get_point(self):
         return pyautogui.position()
 
-    @classmethod
-    def screen(cls, hwnd, filename):
+    def screen(self, filename):
         return cv2.imread(mss.mss().shot(mon=1, output=filename))
 
-    @classmethod
-    def move_to(cls, hwnd, point, speed=0.5):
-        return pyautogui.moveTo(point[0], point[1], speed, pyautogui.easeInOutQuad)
+    def move_to(self, point, duration=0.5):
+        return pyautogui.moveTo(point.x, point.y, duration=duration, tween=pyautogui.easeInOutQuad)
 
-    @classmethod
-    def left_click_at_point(cls, hwnd, point):
-        return pyautogui.click(point[0], point[1])
+    def left_click_at_point(self, point):
+        return pyautogui.click(point.x, point.y)
 
-    @classmethod
-    def right_click_at_point(cls, hwnd, point):
-        return pyautogui.rightClick(point[0], point[1])
+    def right_click_at_point(self, point):
+        return pyautogui.rightClick(point.x, point.y)

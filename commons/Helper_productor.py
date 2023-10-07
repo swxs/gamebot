@@ -5,81 +5,103 @@
 
 import os
 import sys
+import logging
 from fnmatch import fnmatch
 from importlib import import_module
+from typing import TypeVar, Optional, Union, Dict, Generic
+
+logger = logging.getLogger("helper.Helper_productor")
+
+T = TypeVar('T')
+
 
 class NoModule(Exception):
     pass
 
 
-class Productor(object):
+class Productor(Generic[T]):
     def __init__(
         self,
-        base_module: object,
+        root_dir: str,
         start_dir: str,
+        base_module: T,
+        temp_module: Optional[T],
         pattern: str = '*.py',
-        top_level_dir: str = None,
-        temp_module: object = None,
-        root_dir: str = None,
     ):
-        self._productor = {}
-        self._path = {}
+        """
+        简介
+        ----------
+        通过实例化Productor来初始化工厂(假设为productor), 通过productor[name]获取子类
+            name为对应子类__name__
+
+        参数
+        ----------
+        root_dir :
+            系统根目录
+        start_dir :
+            查询根目录
+        base_module :
+            基础模块，所有查询对象应该是该类的子类
+        temp_module :
+            默认模块，设置为None时， 若没有查询到对象，会报NoModuleException
+        pattern [可选]: 默认为 '*.py'
+            文件匹配规则， 可以减小匹配范围加速匹配
+        """
+        # 所有加载模块的容器
+        self.__productor: Dict[Union[str, int], T] = {}
+        self.__path: Dict[Union[str, int], str] = {}
 
         self.base_module = base_module
-        self.temp_module = temp_module
+        if temp_module is None:
+            self.temp_module = base_module
+        else:
+            self.temp_module = temp_module
+        self.root_dir = root_dir
         self.start_dir = start_dir
         self.pattern = pattern
-        if top_level_dir is None:
-            self.top_level_dir = self.start_dir
-        else:
-            self.top_level_dir = top_level_dir
-        if root_dir is None:
-            self.root_dir = os.path.dirname(os.path.abspath(__file__))
-        else:
-            self.root_dir = root_dir
 
-    def __getitem__(self, item):
-        return self._get_module(item, root_path=None)
-
-    def __delitem__(self, key):
-        del sys.modules[self._path[key]]
-        del self._productor[key]
-        del self._path[key]
-
-    def __contains__(self, item):
-        return item in self._productor
-
-    def _get_module(self, item, root_path=None):
+    def __getitem__(self, item: Union[str, int]) -> T:
         """
-        从__getitem__改造而来
-        :param item:
-        :param root_path: 后面加了要限制文件夹权限的需求后添加了root_path，可以动态修改加载的root文件夹
-        :return:
+        简介
+        ----------
+        尝试获取匹配__name__的子类
+        如果当前内存没有加载则去相应路径内查找匹配对应__name__的子类
+        否则直接使用缓存的类
+
+        参数
+        ----------
+        item :
+        指定的__name__, 可以为数值或者字符串
+
+        返回
+        ----------
+        对应子类
+
+        异常
+        ----------
+
         """
-        if item not in self._productor:
-            self.discover(root_path=root_path)
+        if item not in self.__productor:
+            self.discover()
 
-        if item in self._productor:
-            return self._productor[item]
+        if item in self.__productor:
+            return self.__productor[item]
         else:
-            if self.temp_module:
-                return self.temp_module
-            else:
-                raise NoModule
+            return self.temp_module
 
-    def _load_module(self, module, module_path):
-        try:
-            name = getattr(module, "name")
-        except Exception:
-            name = getattr(module, "__name__")
-        self._productor[name] = module
-        self._path[name] = module_path
+    def __delitem__(self, item: Union[str, int]) -> None:
+        del sys.modules[self.__path[item]]
+        del self.__productor[item]
+        del self.__path[item]
 
-    def _match_path(self, path, full_path, pattern):
+    def __contains__(self, item: Union[str, int]) -> bool:
+        return item in self.__productor
+
+    def __match_path(self, path, full_path, pattern):
         # override this method to use alternative matching strategy
         return fnmatch(path, pattern)
 
-    def _path_2_modulepath(self, path=''):
+    def __path_2_modulepath(self, path='') -> Optional[str]:
         if path:
             path = path.replace('\\', '/').replace(self.root_dir.replace('\\', '/'), '')
             if path.startswith('/'):
@@ -92,32 +114,36 @@ class Productor(object):
                 return path
         return None
 
-    def discover(self, root_path=None):
-        if root_path:
-            top_level_dir = root_path
-        elif self.top_level_dir:
-            top_level_dir = os.path.abspath(self.top_level_dir)
-        else:
-            top_level_dir = None
+    def __load_module(self, module: T, module_path: str) -> None:
+        try:
+            name = getattr(module, "name")
+        except Exception:
+            name = getattr(module, "__name__")
+        self.__productor[name] = module
+        self.__path[name] = module_path
 
-        if top_level_dir and os.path.isdir(os.path.abspath(top_level_dir)):
-            for root, dirs, files in os.walk(top_level_dir):
-                for file_name in files:
-                    full_path = os.path.join(root, file_name)
-                    if self._match_path(file_name, full_path, self.pattern):
-                        try:
-                            module_path = self._path_2_modulepath(full_path)
-                            module = import_module(module_path)
-                            for name in dir(module):
-                                obj = getattr(module, name)
-                                if (
-                                    isinstance(obj, type)
-                                    and issubclass(obj, self.base_module)
-                                    and getattr(obj, "__module__") == module_path
-                                ):
-                                    self._load_module(obj, module_path)
-                        except Exception as e:
-                            print(f"full_path: {full_path}")
-                            # logger.exception(e, f"full_path: {full_path}")
-        else:
+    def discover(self) -> None:
+        start_dir = os.path.abspath(self.start_dir)
+
+        if not os.path.isdir(start_dir):
             pass
+
+        for root, dirs, files in os.walk(start_dir):
+            for file_name in files:
+                full_path = os.path.join(root, file_name)
+                if self.__match_path(file_name, full_path, self.pattern):
+                    try:
+                        module_path = self.__path_2_modulepath(full_path)
+                        if module_path is None:
+                            continue
+                        module = import_module(module_path)
+                        for name in dir(module):
+                            obj: T = getattr(module, name)
+                            if (
+                                isinstance(obj, type)
+                                and issubclass(obj, self.base_module)
+                                and getattr(obj, "__module__") == module_path
+                            ):
+                                self.__load_module(obj, module_path)
+                    except Exception as e:
+                        logger.warning(full_path, e)

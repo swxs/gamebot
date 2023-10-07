@@ -1,9 +1,10 @@
-# %load ../DAG.py
-# DAG
+# %load ../Group.py
+# Group
 import time
 import uuid
 import copy
 import contextvars
+from typing import Union, Optional
 from collections import deque
 
 __diagrams = contextvars.ContextVar("diagrams")
@@ -20,8 +21,8 @@ def setdiagram(diagram):
     __diagrams.set(diagram)
 
 
-class DAG:
-    def __init__(self, name=None, diag=None):
+class Group:
+    def __init__(self, name: Optional[str] = None, diag=None):
         if name:
             self.name = name
         else:
@@ -53,8 +54,8 @@ class DAG:
     def setup(self, handler, hwnd):
         self.handler = handler
         self.hwnd = hwnd
-        for id_, dag in self.dags.items():
-            dag.setup(handler, hwnd)
+        for id_, group in self.dags.items():
+            group.setup(handler, hwnd)
 
     def __enter__(self):
         setdiagram(self)
@@ -119,7 +120,7 @@ class DAG:
         pass
 
     def __rshift__(self, other):
-        if isinstance(other, DAG):
+        if isinstance(other, Group):
             print(f"{self.name}: {self.start.name} rshift {other.name}.{other.start.name}")
             other.diag.connect(self.start, other.start)
             return other
@@ -136,7 +137,7 @@ class DAG:
         pass
 
     def __lshift__(self, other):
-        if isinstance(other, DAG):
+        if isinstance(other, Group):
             print(f"{self.name}: {self.start.name} lshift {other.name}.{other.start.name}")
             other.diag.connect(other.start, self.start)
             return other
@@ -152,9 +153,9 @@ class DAG:
     def __rlshift__(self, other):
         pass
 
-    def add_dag(self, dag):
-        self.dags[id(dag)] = dag
-        return dag
+    def add_dag(self, group):
+        self.dags[id(group)] = group
+        return group
 
     def add_node(self, node):
         self.nodes[id(node)] = node
@@ -219,17 +220,17 @@ class DAG:
 
         return string
 
-    def copy(self, name):
-        copyed_dag = DAG(name=name, diag=self.diag)
+    # def copy(self, name):
+    #     copyed_dag = Group(name=name, diag=self.diag)
 
-        copyed_dag.dags = self.dags
-        copyed_dag.nodes = self.nodes
-        copyed_dag.selectors = self.selectors
+    #     copyed_dag.dags = self.dags
+    #     copyed_dag.nodes = self.nodes
+    #     copyed_dag.selectors = self.selectors
 
-        for (selector, start_node) in self.start.next_list:
-            copyed_dag.connect(copyed_dag.start, start_node)
+    #     for (selector, start_node) in self.start.next_list:
+    #         copyed_dag.connect(copyed_dag.start, start_node)
 
-        return copyed_dag
+    #     return copyed_dag
 
 
 class Node:
@@ -249,7 +250,7 @@ class Node:
         if isinstance(other, list):
             dag_or_node_list = []
             for other_ in other:
-                if isinstance(other_, DAG):
+                if isinstance(other_, Group):
                     self.diag.connect(self, other_.start)
                     dag_or_node_list.append(other_)
                 elif isinstance(other_, Node):
@@ -259,7 +260,7 @@ class Node:
                     pass
             return dag_or_node_list
         else:
-            if isinstance(other, DAG):
+            if isinstance(other, Group):
                 print(f"{self.diag.name}: {self.name} rshift {other.name}.{other.start.name}")
                 self.diag.connect(self, other.start)
                 return other
@@ -273,7 +274,7 @@ class Node:
                 return self
 
     def __lshift__(self, other):
-        if isinstance(other, DAG):
+        if isinstance(other, Group):
             print(f"{self.diag.name}: {self.name} lshift {other.name}.{other.start.name}")
             self.diag.connect(other.start, self)
             return other
@@ -303,7 +304,7 @@ class Selector:
         self.diag.add_selector(self)
 
     def __rshift__(self, other):
-        if isinstance(other, DAG):
+        if isinstance(other, Group):
             print(f"{self.diag.name}: {self.name} 'rshift {other.name}.{other.start.name}")
             self.diag.forward(self)
             return other
@@ -313,7 +314,7 @@ class Selector:
             return other
 
     def __lshift__(self, other):
-        if isinstance(other, DAG):
+        if isinstance(other, Group):
             print(f"{self.diag.name}: {self.name} 'lshift {other.name}.{other.start.name}")
             self.diag.forward(self)
             return self

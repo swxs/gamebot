@@ -3,8 +3,6 @@ import random
 import time
 
 
-
-
 dag = DAG(name="main")
 with dag as dag:
     start = Node("start", start)
