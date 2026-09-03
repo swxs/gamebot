@@ -1,5 +1,5 @@
 import time
-from ..dag import DAG, Node, Selector
+from gamebot.dag import Group as DAG, Node, Selector
 
 BATTLE_TIMES = 0
 VISIT_TIMES = 0

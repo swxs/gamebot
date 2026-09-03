@@ -1,4 +1,4 @@
-from dags.dag import DAG, Node
+from gamebot.dag import Group as DAG, Node
 import random
 import time
 

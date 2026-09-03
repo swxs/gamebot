@@ -1,4 +1,3 @@
-import os
 import cv2
 import time
 
@@ -10,7 +9,7 @@ import random
 import numpy as np
 import functools
 
-import core
+from gamebot import core
 from .utils.point_utils import Point
 from .utils import hwnd_utils, cv_utils, point_utils
 
