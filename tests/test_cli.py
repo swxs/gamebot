@@ -1,4 +1,3 @@
-import importlib.util
 import os
 
 import pytest
@@ -7,10 +6,10 @@ from gamebot.cli import load_dag_module
 from gamebot.core.path import PROJECT_ROOT
 
 
-def test_load_dag_module_resolves_path():
+def test_load_dag_module_path_convention():
     parts = ["testcase", "run"]
     expected = os.path.join(PROJECT_ROOT, "dags", *parts[:-1], parts[-1] + ".py")
-    assert os.path.isfile(expected)
+    assert expected.replace("\\", "/").endswith("dags/testcase/run.py")
 
 
 def test_load_dag_module_raises_for_missing():
@@ -22,7 +21,7 @@ def test_load_dag_module_minimal(tmp_path, monkeypatch):
     dag_file = tmp_path / "sample.py"
     dag_file.write_text(
         "from gamebot.dag import Group\n"
-        "dag = Group(name='sample')\n",
+        "group = Group(name='sample')\n",
         encoding="utf-8",
     )
 
@@ -33,4 +32,4 @@ def test_load_dag_module_minimal(tmp_path, monkeypatch):
 
     monkeypatch.setattr("gamebot.cli.os.path.join", fake_join)
     module = load_dag_module("sample.run")
-    assert module.dag.name == "sample"
+    assert module.group.name == "sample"

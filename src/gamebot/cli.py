@@ -22,15 +22,15 @@ def load_dag_module(dag_spec: str):
 
 
 class ListenThread(threading.Thread):
-    def __init__(self, dag):
+    def __init__(self, group):
         threading.Thread.__init__(self)
-        self.dag = dag
+        self.group = group
         self.stopped = False
         self.turn = 0
 
     def run(self):
         while not self.stopped:
-            for _ in self.dag:
+            for _ in self.group:
                 print(_)
                 if _ == "end":
                     self.turn += 1
@@ -52,10 +52,10 @@ def run():
     hwnd = handler.get_hwnd(core.NAME)
 
     module = load_dag_module(core.DAG)
-    dag = module.dag
-    dag.setup(handler, hwnd)
+    group = module.group
+    group.setup({"handler": handler, "hwnd": hwnd})
 
-    hThread = ListenThread(dag)
+    hThread = ListenThread(group)
     hThread.start()
 
 
