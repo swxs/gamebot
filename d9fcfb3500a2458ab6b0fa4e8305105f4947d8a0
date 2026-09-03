@@ -1,0 +1,84 @@
+.vscode/launch.json
+  d283ff3970d30a8a 8
+src/gamebot/core/config.py
+  d283ff3970d30a8a 1-24
+src/gamebot/commons/Helper_productor.py
+  d283ff3970d30a8a 1-149
+src/gamebot/handlers/utils/path_utils.py
+  d283ff3970d30a8a 1,3,6-7
+src/gamebot/handlers/frontend_handler.py
+  d283ff3970d30a8a 1-40
+dags/Hearthstone_Mercenaries/one_one.py
+  d283ff3970d30a8a 2
+src/gamebot/handlers/pyauto_handler.py
+  d283ff3970d30a8a 1-23
+src/gamebot/handlers/utils/hwnd_utils.py
+  d283ff3970d30a8a 1-78
+pyproject.toml
+  d283ff3970d30a8a 1-13,15-18,20-21,23-25,27-28,30-32
+dags/testcase/run.py
+  d283ff3970d30a8a 1
+src/gamebot/core/__init__.py
+  d283ff3970d30a8a 1-2
+src/gamebot/handlers/utils/cv_utils.py
+  d283ff3970d30a8a 1-21
+AGENTS.md
+  075188489018e84d 1,3,5,7,9,11-14,16,18,20-39,41,43,45,47-49,60-62,64,66-72,74,76,78-79,81-84,86,88,90,92,94-95,97,99-102,104,106-110,112,114-121,123-126,128,130,132-135,137,139,141-147,149,151,153-157,159,161,163-165,167,169,171,173,175-182,184,186,188,190-192,194,196,198-200,202,204-208,213-218
+src/gamebot/handlers/base_handler.py
+  d283ff3970d30a8a 1-51
+src/gamebot/core/path.py
+  d283ff3970d30a8a 1-2,4-10
+src/gamebot/handlers/utils/point_utils.py
+  d283ff3970d30a8a 1-14
+src/gamebot/cli.py
+  d283ff3970d30a8a 1-2,5-7,10-15,17-21,25,27,33,46,48-50,52,54-56,58,62,66-67
+tests/test_dag.py
+  d283ff3970d30a8a 1,4-7,9-11,13-15,17-19,21-24,27-30,32-33,35-36,38-40,42-44,46-48,51-57,59-61
+src/gamebot/handlers/__init__.py
+  d283ff3970d30a8a 3-5,8
+tests/test_productor.py
+  d283ff3970d30a8a 1-2,5-9
+tests/test_cli.py
+  d283ff3970d30a8a 1-2,4,6-7,10-13,16-18,21-27,29-32,34-36
+dags/alipay/signin.py
+  d283ff3970d30a8a 1
+src/gamebot/handlers/backend_handler.py
+  d283ff3970d30a8a 1-118
+src/gamebot/__init__.py
+  d283ff3970d30a8a 1
+src/gamebot/commons/__init__.py
+  d283ff3970d30a8a 1
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.0",
+  "base_commit_sha": "d9fcfb3500a2458ab6b0fa4e8305105f4947d8a0",
+  "prompts": {
+    "075188489018e84d": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "73c2d70e-4ac6-4bca-bdd6-f93087128886",
+        "model": "composer-2.5"
+      },
+      "human_author": "swxs",
+      "messages": [],
+      "total_additions": 218,
+      "total_deletions": 0,
+      "accepted_lines": 148,
+      "overriden_lines": 6
+    },
+    "d283ff3970d30a8a": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "49dfa9d9-1d1a-46cf-951c-b28805da2415",
+        "model": "composer-2.5"
+      },
+      "human_author": "swxs",
+      "messages": [],
+      "total_additions": 1402,
+      "total_deletions": 1046,
+      "accepted_lines": 1164,
+      "overriden_lines": 0
+    }
+  }
+}
