@@ -1,7 +1,7 @@
-import cv2
 import functools
+import random
 
-
+import cv2
 import numpy as np
 
 

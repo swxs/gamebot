@@ -1,0 +1,26 @@
+import importlib.util
+import os
+
+from gamebot.core.path import PROJECT_ROOT
+from gamebot.dag import Group
+from gamebot.handlers.packages.win32_backend import Win32BackendPackage
+
+
+def _load_graph():
+    path = os.path.join(PROJECT_ROOT, "dags", "testcase", "_graph.py")
+    spec = importlib.util.spec_from_file_location("testcase_graph", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+_graph = _load_graph()
+
+
+def build_setup():
+    return {"packages": _graph.base_packages(Win32BackendPackage.unbound())}
+
+
+group = Group(name="testcase_backend")
+with group as group:
+    _graph.build_graph(group)

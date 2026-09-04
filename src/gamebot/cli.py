@@ -4,11 +4,10 @@ import threading
 
 from gamebot import core
 from gamebot.core.path import PROJECT_ROOT
-from gamebot.handlers import handler_productor
 
 
 def load_dag_module(dag_spec: str):
-    """从 dags/{spec}.py 显式加载用户 DAG 模块，如 testcase.run -> dags/testcase/run.py"""
+    """从 dags/{spec}.py 显式加载用户 DAG 模块，如 testcase.pyauto_run -> dags/testcase/pyauto_run.py"""
     parts = dag_spec.split(".")
     file_path = os.path.join(PROJECT_ROOT, "dags", *parts[:-1], parts[-1] + ".py")
     if not os.path.isfile(file_path):
@@ -43,17 +42,16 @@ class ListenThread(threading.Thread):
 
 
 def run():
-    handler = handler_productor[core.HANDLER]
-
     if core.NAME is None:
         print("需要输入名称：")
         exit(1)
 
-    hwnd = handler.get_hwnd(core.NAME)
-
     module = load_dag_module(core.DAG)
+    if not hasattr(module, "build_setup"):
+        raise AttributeError(f"DAG module {core.DAG!r} must export build_setup()")
+
     group = module.group
-    group.setup({"handler": handler, "hwnd": hwnd})
+    group.setup(module.build_setup())
 
     hThread = ListenThread(group)
     hThread.start()

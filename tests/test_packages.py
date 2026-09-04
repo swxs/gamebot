@@ -1,0 +1,83 @@
+import numpy as np
+import pytest
+
+from gamebot.handlers.packages.opencv_matcher import OpenCVMatcherPackage
+from gamebot.handlers.packages.pyauto_desktop import PyAutoDesktopPackage
+from gamebot.protocols.types import Point
+
+
+class _FakeDesktop:
+    def __init__(self):
+        self.clicked = None
+        self._screen = np.zeros((80, 80, 3), dtype=np.uint8)
+        self._screen[20:40, 20:40] = (0, 255, 0)
+
+    def capture(self):
+        return self._screen
+
+    def click(self, point):
+        self.clicked = point
+        return True
+
+
+def test_bind_unbound_raises():
+    pkg = PyAutoDesktopPackage.unbound()
+    with pytest.raises(RuntimeError, match="not bound"):
+        pkg.capture()
+
+
+def test_bind_from_env(monkeypatch):
+    monkeypatch.setattr("gamebot.core.NAME", "TestWindow")
+    monkeypatch.setattr(
+        "gamebot.handlers.packages.pyauto_desktop.package.get_hwnd_with_name",
+        lambda name: 12345,
+    )
+    pkg = PyAutoDesktopPackage.unbound().bind_from_env()
+    assert pkg._hwnd == 12345
+
+
+def test_opencv_find(tmp_path):
+    screen = np.zeros((100, 100, 3), dtype=np.uint8)
+    screen[30:50, 30:50] = (255, 0, 0)
+    template_path = tmp_path / "tpl.png"
+    import cv2
+
+    cv2.imwrite(str(template_path), screen[30:50, 30:50])
+    matcher = OpenCVMatcherPackage()
+    hit = matcher.find(screen, str(template_path), sens=0.8)
+    assert hit is not None
+    w = hit.bottom_right.x - hit.top_left.x
+    h = hit.bottom_right.y - hit.top_left.y
+    assert w == 20
+    assert h == 20
+
+
+def test_find_and_click_orchestration():
+    desktop = _FakeDesktop()
+    matcher = OpenCVMatcherPackage()
+
+    import cv2
+
+    template_path = "__memory__"
+    # patch find to avoid file
+    def fake_find(screen, path, sens=0.8):
+        from gamebot.protocols.types import MatchResult
+
+        return MatchResult(top_left=Point(20, 20), bottom_right=Point(40, 40))
+
+    matcher.find = fake_find
+    assert matcher.find_and_click(desktop, template_path) is True
+    assert desktop.clicked == Point(30, 30)
+
+
+def test_pyperclip_read_write(monkeypatch):
+    store = {"v": ""}
+
+    monkeypatch.setattr("pyperclip.paste", lambda: store["v"])
+    monkeypatch.setattr("pyperclip.copy", lambda v: store.update({"v": v}))
+
+    from gamebot.handlers.packages.pyperclip_pkg import PyperclipPackage
+
+    pkg = PyperclipPackage()
+    pkg.write("hello")
+    assert pkg.read() == "hello"

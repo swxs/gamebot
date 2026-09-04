@@ -10,11 +10,35 @@ dependencies = [
     "mss",
     "pywin32",
     "numpy",
+    "pyperclip",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest",
+]
+pyauto = [
+    "pyautogui",
+    "mss",
+]
+win32 = [
+    "pywin32",
+]
+opencv = [
+    "opencv-python",
+    "numpy",
+]
+playwright = [
+    "playwright",
+]
+all = [
+    "pyautogui",
+    "mss",
+    "pywin32",
+    "opencv-python",
+    "numpy",
+    "pyperclip",
+    "playwright",
 ]
 
 [project.scripts]

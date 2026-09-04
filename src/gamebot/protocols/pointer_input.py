@@ -1,0 +1,12 @@
+from typing import Protocol, runtime_checkable
+
+from gamebot.protocols.types import Point
+
+
+@runtime_checkable
+class PointerInput(Protocol):
+    def move_to(self, point: Point, duration: float = 0.1) -> bool: ...
+
+    def click(self, point: Point) -> bool: ...
+
+    def right_click(self, point: Point) -> bool: ...

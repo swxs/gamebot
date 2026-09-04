@@ -1,4 +1,5 @@
 from gamebot.dag import Context, Group, Node, resolve_entry_node
+import pytest
 
 
 def _setup(group, extra=None):
@@ -216,3 +217,75 @@ def test_resolve_entry_node():
 
     entry = resolve_entry_node(sub.start)
     assert entry.name == "inner"
+
+
+class _FakePkg:
+    def __init__(self, label):
+        self.label = label
+
+
+def test_pkg_chain_lookup():
+    root = Group(name="root")
+    with root as root:
+        sub = Group(name="sub")
+        with sub as sub:
+            seen = {}
+
+            def check(ctx):
+                seen["label"] = ctx.pkg("desktop").label
+                return True
+
+            sub >> Node("n", check)
+        root >> sub
+
+    root.setup({"packages": {"desktop": _FakePkg("parent")}})
+    list(root)
+    assert seen["label"] == "parent"
+
+
+def test_pkg_shadow():
+    root = Group(name="root")
+    with root as root:
+        sub = Group(name="sub")
+        with sub as sub:
+            seen = {}
+
+            def check(ctx):
+                seen["label"] = ctx.pkg("desktop").label
+                return True
+
+            sub >> Node("n", check)
+        root >> sub
+
+    root.setup({"packages": {"desktop": _FakePkg("parent")}})
+    sub.setup({"packages": {"desktop": _FakePkg("child")}})
+    list(root)
+    assert seen["label"] == "child"
+
+
+def test_setup_separates_packages_and_vars():
+    group = Group(name="g")
+    with group as group:
+        log = {}
+
+        def step(ctx):
+            log["pkg"] = ctx.pkg("desktop").label
+            log["k"] = ctx.get("k")
+            ctx.set("k", ctx.get("k") + 1)
+            return True
+
+        group >> Node("a", step)
+
+    group.setup({"k": 0, "packages": {"desktop": _FakePkg("p")}})
+    list(group)
+    assert log == {"pkg": "p", "k": 0}
+    assert group.get("k") == 1
+    list(group)
+    assert group.get("k") == 1
+
+
+def test_pkg_missing_raises():
+    group = Group(name="g")
+    group.setup({})
+    with pytest.raises(KeyError):
+        group.pkg("missing")

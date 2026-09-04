@@ -51,6 +51,9 @@ class Context:
     def set(self, key, value):
         self._group.set(key, value)
 
+    def pkg(self, name):
+        return self._group.pkg(name)
+
     @property
     def vars(self):
         return self._group.vars
@@ -68,6 +71,8 @@ class Group:
 
         self._vars: dict = {}
         self._vars_template: dict = {}
+        self._packages: dict = {}
+        self._packages_template: dict = {}
 
         self.start = self.add_node(Node("__start", None, diag=self))
         self.current = self.start
@@ -84,10 +89,21 @@ class Group:
             self.diag.add_dag(self)
 
     def setup(self, vars: dict):
-        self._vars_template = copy.deepcopy(vars)
-        self._vars = copy.deepcopy(vars)
+        data = copy.deepcopy(vars)
+        packages = data.pop("packages", {})
+        self._vars_template = data
+        self._vars = copy.deepcopy(data)
+        self._packages_template = copy.deepcopy(packages)
+        self._packages = copy.deepcopy(packages)
         for group in self.dags.values():
             group.setup(vars)
+
+    def pkg(self, name):
+        if name in self._packages:
+            return self._packages[name]
+        if self.diag:
+            return self.diag.pkg(name)
+        raise KeyError(f"package {name!r} not found")
 
     def get(self, key, default=None):
         if key in self._vars:
@@ -105,6 +121,7 @@ class Group:
 
     def _restore_vars(self):
         self._vars = copy.deepcopy(self._vars_template)
+        self._packages = copy.deepcopy(self._packages_template)
 
     def _clear_pending(self):
         self._pending_target = None
