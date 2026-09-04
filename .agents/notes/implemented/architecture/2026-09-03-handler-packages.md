@@ -44,7 +44,6 @@ handlers/packages/
 - **同 Protocol 多实现** → 多个 pkg 键（如未来 `pointer_direct` / `pointer_human`），各自 `install_*()`
 - **同栈多 Handler** → 共享 `__package__ = Win32Package`，`check_deps` 只跑一次
 - **一个 Handler 可多 Protocol** — `Win32BackendHandler` 同时满足 WindowControl、ScreenCapture、ClipboardAccess、KeyboardInput
-- **向后兼容别名**（过渡期）：`Win32BackendPackage`、`PyAutoDesktopPackage`、`OpenCVMatcherPackage` 等指向 Handler 类
 
 ### DAG 安装示例
 
@@ -70,9 +69,9 @@ setup 阶段集中失败更清晰；同一栈装多个 handler 时不重复 impo
 
 win32 backend 天然跨 Protocol；栈级 Package 更贴合 pip extra（`[win32]`、`[pyauto]`）与依赖边界。
 
-### Why keep compatibility aliases?
+### Why not keep compatibility aliases?
 
-减少 DAG/测试一次性大改；新代码应使用 `Win32Package.install_*()` / `PyAutoPackage.install_*()`。
+已移除；对外仅暴露 `*Package.install_*()` 工厂与 Handler 类名，避免 Package/Handler 同名混淆。
 
 ## Consequences
 
