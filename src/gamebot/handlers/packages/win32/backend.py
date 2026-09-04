@@ -1,3 +1,5 @@
+"""Win32 SendMessage 后端：ScreenCapture + Pointer + Keyboard + WindowControl。"""
+
 import cv2
 import numpy as np
 import win32api
@@ -6,38 +8,10 @@ import win32gui
 import win32ui
 
 from gamebot.protocols.types import Point
-from gamebot.handlers.packages._hwnd import get_hwnd_with_name
+from gamebot.handlers.packages.win32._bound import Win32BoundMixin
 
 
-class Win32BackendPackage:
-    def __init__(self, hwnd: int | None = None):
-        self._hwnd = hwnd
-
-    @classmethod
-    def unbound(cls):
-        return cls()
-
-    def bind(self, hwnd: int):
-        self._hwnd = hwnd
-        return self
-
-    def bind_from_env(self):
-        from gamebot import core
-
-        if core.NAME:
-            hwnd = get_hwnd_with_name(core.NAME)
-            if hwnd == -1:
-                raise RuntimeError(f"window not found: {core.NAME!r}")
-        else:
-            hwnd = win32gui.GetForegroundWindow()
-            if not hwnd:
-                raise RuntimeError("no foreground window to bind; set NAME or focus target window")
-        return self.bind(hwnd)
-
-    def _require_hwnd(self):
-        if self._hwnd is None or self._hwnd == -1:
-            raise RuntimeError("desktop package not bound; call bind() or bind_from_env() first")
-        return self._hwnd
+class Win32BackendHandler(Win32BoundMixin):
 
     def capture(self):
         hwnd = self._require_hwnd()

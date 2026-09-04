@@ -27,7 +27,7 @@ gamebot/
     ├── dag.py
     ├── dashboard/              # CLI 本地浏览器 dashboard（SSE）
     ├── protocols/                # ScreenCapture、TemplateMatcher 等 Protocol
-    ├── handlers/packages/        # pyauto_desktop、win32_backend、opencv_matcher…
+    ├── handlers/packages/        # 栈级 Package + Handler（win32、pyauto、opencv、pyperclip）
     └── core/
 ```
 
@@ -79,18 +79,21 @@ Optional extras：`[pyauto]`、`[win32]`、`[opencv]`、`[playwright]`、`[all]`
 
 ## 架构要点
 
-### Handler Package + Protocol
+### Handler 栈 + Protocol
 
 | 层级 | 路径 | 职责 |
 |------|------|------|
 | Protocol | `gamebot/protocols/` | 能力契约（`@runtime_checkable`） |
-| Package | `gamebot/handlers/packages/<name>/` | 具体实现，可 mixin 多 Protocol |
-| 安装 | `Group.setup({"packages": {...}, ...})` | 包名 → 实例 |
+| Package（栈） | `handlers/packages/<stack>/package.py` | `check_deps()` + `install_*()`；setup 时去重检查依赖 |
+| Handler | 同栈下 `*.py` | 实现 Protocol；`ctx.pkg(name)` 取实例 |
+| 安装 | `Group.setup({"packages": {...}, ...})` | pkg 名 → Handler 实例；自动 `check_packages` |
 | 访问 | `ctx.pkg("desktop")` | 链式向上查找，子 Group 可 shadow |
 
-P0 包：`pyauto_desktop`（鼠键）、`win32_window_capture`（窗口截图）、`win32_backend`、`opencv_matcher`、`pyperclip_pkg`。
+P0 栈：`pyauto`（鼠键）、`win32`（backend / capture）、`opencv`（matcher）、`pyperclip`（clipboard）。
 
-需 hwnd 的包：`Win32WindowCapturePackage.unbound()` 或 `Win32BackendPackage.unbound()` → 节点内 `bind_from_env()`。`PyAutoDesktopPackage` 无 bind。
+同 Protocol 多实现：多个 pkg 键（如 `pointer_direct` / 未来 `pointer_human`）。同栈多 Handler 共享一次 `check_deps`（如 backend + capture 均属 `Win32Package`）。
+
+需 hwnd：`Win32Package.install_capture()` 或 `install_backend()` → 节点内 `bind_from_env()`。`PyAutoPackage.install_pointer_direct()` 无 bind。
 
 ### DAG 状态图（`dag.py`）
 
@@ -145,17 +148,17 @@ pytest tests/test_dag.py tests/test_packages.py
 
 ```python
 from gamebot.dag import Group, Node
-from gamebot.handlers.packages.pyauto_desktop import PyAutoDesktopPackage
-from gamebot.handlers.packages.win32_window_capture import Win32WindowCapturePackage
-from gamebot.handlers.packages.opencv_matcher import OpenCVMatcherPackage
+from gamebot.handlers.packages.pyauto import PyAutoPackage
+from gamebot.handlers.packages.win32 import Win32Package
+from gamebot.handlers.packages.opencv import OpenCVPackage
 
 
 def build_setup():
     return {
         "packages": {
-            "desktop": PyAutoDesktopPackage(),
-            "capture": Win32WindowCapturePackage.unbound(),
-            "matcher": OpenCVMatcherPackage(),
+            "desktop": PyAutoPackage.install_pointer_direct(),
+            "capture": Win32Package.install_capture(),
+            "matcher": OpenCVPackage.install_matcher(),
         },
     }
 

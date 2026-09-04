@@ -3,7 +3,7 @@ import os
 
 from gamebot.core.path import PROJECT_ROOT
 from gamebot.dag import Group
-from gamebot.handlers.packages.win32_backend import Win32BackendPackage
+from gamebot.handlers.packages.win32 import Win32Package
 
 
 def _load_graph():
@@ -18,7 +18,7 @@ _graph = _load_graph()
 
 
 def build_setup():
-    return {"packages": _graph.base_packages(Win32BackendPackage.unbound())}
+    return {"packages": _graph.base_packages(Win32Package.install_backend())}
 
 
 group = Group(name="testcase_backend")

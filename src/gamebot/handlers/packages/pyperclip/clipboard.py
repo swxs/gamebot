@@ -1,7 +1,8 @@
 import pyperclip
 
 
-class PyperclipPackage:
+class PyperclipHandler:
+
     def read(self) -> str:
         return pyperclip.paste()
 

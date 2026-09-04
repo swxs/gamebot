@@ -3,8 +3,8 @@ import os
 
 from gamebot.core.path import PROJECT_ROOT
 from gamebot.dag import Group
-from gamebot.handlers.packages.pyauto_desktop import PyAutoDesktopPackage
-from gamebot.handlers.packages.win32_window_capture import Win32WindowCapturePackage
+from gamebot.handlers.packages.pyauto import PyAutoPackage
+from gamebot.handlers.packages.win32 import Win32Package
 
 
 def _load_graph():
@@ -21,8 +21,8 @@ _graph = _load_graph()
 def build_setup():
     return {
         "packages": _graph.base_packages(
-            PyAutoDesktopPackage(),
-            Win32WindowCapturePackage.unbound(),
+            PyAutoPackage.install_pointer_direct(),
+            Win32Package.install_capture(),
         )
     }
 

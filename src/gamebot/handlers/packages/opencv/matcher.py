@@ -4,10 +4,11 @@ from typing import Optional
 import numpy as np
 
 from gamebot.protocols.types import MatchResult, Point
-from gamebot.handlers.packages.opencv_matcher._cv import diff_image, get_template_info
+from gamebot.handlers.packages.opencv._cv import diff_image, get_template_info
 
 
-class OpenCVMatcherPackage:
+class OpenCVMatcherHandler:
+
     def find(
         self,
         screen: np.ndarray,

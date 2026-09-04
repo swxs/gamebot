@@ -5,8 +5,8 @@ import os
 from gamebot import core
 from gamebot.core.path import dag_files_dir
 from gamebot.dag import Group, Node
-from gamebot.handlers.packages.opencv_matcher import OpenCVMatcherPackage
-from gamebot.handlers.packages.pyperclip_pkg import PyperclipPackage
+from gamebot.handlers.packages.opencv import OpenCVPackage
+from gamebot.handlers.packages.pyperclip import PyperclipPackage
 
 
 def template_path(name: str) -> str:
@@ -45,8 +45,8 @@ def build_graph(group: Group):
 def base_packages(desktop, capture=None):
     packages = {
         "desktop": desktop,
-        "matcher": OpenCVMatcherPackage(),
-        "clipboard": PyperclipPackage(),
+        "matcher": OpenCVPackage.install_matcher(),
+        "clipboard": PyperclipPackage.install_clipboard(),
     }
     if capture is not None:
         packages["capture"] = capture

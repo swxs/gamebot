@@ -3,8 +3,7 @@ import pyautogui
 from gamebot.protocols.types import Point
 
 
-class PyAutoDesktopPackage:
-    """桌面鼠键（PointerInput / KeyboardInput），无 hwnd、不截图。"""
+class PyAutoPointerDirectHandler:
 
     def move_to(self, point: Point, duration: float = 0.5):
         pyautogui.moveTo(point.x, point.y, duration=duration, tween=pyautogui.easeInOutQuad)

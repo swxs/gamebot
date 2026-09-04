@@ -95,6 +95,9 @@ class Group:
         self._vars = copy.deepcopy(data)
         self._packages_template = copy.deepcopy(packages)
         self._packages = copy.deepcopy(packages)
+        from gamebot.handlers.packages._package import check_packages
+
+        check_packages(self._packages)
         for group in self.dags.values():
             group.setup(vars)
 
