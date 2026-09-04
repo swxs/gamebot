@@ -1,0 +1,64 @@
+src/gamebot/handlers/packages/opencv/__init__.py
+  8583432af1cb5b8e 1-2,4,6
+src/gamebot/handlers/packages/win32/package.py
+  8583432af1cb5b8e 1-3,6-8,10-12,14-16,18-20
+src/gamebot/handlers/packages/pyauto/pointer_direct.py
+  8583432af1cb5b8e 1-26
+src/gamebot/handlers/packages/pyperclip/__init__.py
+  8583432af1cb5b8e 1-2,4
+src/gamebot/handlers/packages/opencv/package.py
+  8583432af1cb5b8e 1-2,5-9,11-13
+src/gamebot/handlers/packages/pyperclip/clipboard.py
+  8583432af1cb5b8e 1-11
+src/gamebot/handlers/packages/opencv/matcher.py
+  8583432af1cb5b8e 1-41
+src/gamebot/handlers/packages/win32/capture.py
+  8583432af1cb5b8e 1-38
+src/gamebot/handlers/packages/_package.py
+  8583432af1cb5b8e 1,4-5,7-9,12-20
+src/gamebot/handlers/packages/win32/backend.py
+  8583432af1cb5b8e 1-103
+src/gamebot/handlers/packages/pyauto/__init__.py
+  8583432af1cb5b8e 1-2,4,6
+src/gamebot/handlers/packages/win32/__init__.py
+  8583432af1cb5b8e 1-3,5-6,8-14
+src/gamebot/handlers/packages/pyperclip/package.py
+  8583432af1cb5b8e 1-2,5-8,10-12
+src/gamebot/handlers/packages/pyauto/package.py
+  8583432af1cb5b8e 1-2,5-8,10-12
+src/gamebot/handlers/packages/win32/_bound.py
+  8583432af1cb5b8e 1,3,5,8-10,12-14,16-18,20-21,23-31,33-36
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.0",
+  "base_commit_sha": "dcffc9721342e2768807e61395e15221354fabdb",
+  "prompts": {
+    "8583432af1cb5b8e": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "72e065c3-e95d-42f5-977b-beda76b56857",
+        "model": "composer-2.5"
+      },
+      "human_author": "swxs",
+      "messages": [],
+      "total_additions": 405,
+      "total_deletions": 157,
+      "accepted_lines": 348,
+      "overriden_lines": 1
+    },
+    "d283ff3970d30a8a": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "49dfa9d9-1d1a-46cf-951c-b28805da2415",
+        "model": "composer-2.5"
+      },
+      "human_author": "swxs",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 112,
+      "overriden_lines": 0
+    }
+  }
+}
