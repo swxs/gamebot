@@ -1,9 +1,11 @@
 import importlib.util
 import os
 import threading
+import webbrowser
 
 from gamebot import core
 from gamebot.core.path import PROJECT_ROOT
+from gamebot.dashboard import StateHub, build_snapshot, serialize_graph, start_dashboard
 
 
 def load_dag_module(dag_spec: str):
@@ -21,17 +23,19 @@ def load_dag_module(dag_spec: str):
 
 
 class ListenThread(threading.Thread):
-    def __init__(self, group):
+    def __init__(self, group, hub: StateHub):
         threading.Thread.__init__(self)
         self.group = group
+        self.hub = hub
         self.stopped = False
         self.turn = 0
 
     def run(self):
         while not self.stopped:
-            for _ in self.group:
-                print(_)
-                if _ == "end":
+            for step in self.group:
+                print(step)
+                self.hub.publish(build_snapshot(self.group, turn=self.turn))
+                if step == "end":
                     self.turn += 1
                     print(self.turn)
                     if self.turn == core.NUMBER:
@@ -42,10 +46,6 @@ class ListenThread(threading.Thread):
 
 
 def run():
-    if core.NAME is None:
-        print("需要输入名称：")
-        exit(1)
-
     module = load_dag_module(core.DAG)
     if not hasattr(module, "build_setup"):
         raise AttributeError(f"DAG module {core.DAG!r} must export build_setup()")
@@ -53,8 +53,18 @@ def run():
     group = module.group
     group.setup(module.build_setup())
 
-    hThread = ListenThread(group)
+    hub = StateHub()
+    graph = serialize_graph(group)
+    url = start_dashboard(hub, graph, port=core.DASHBOARD_PORT)
+    print(f"dashboard: {url}")
+    if core.DASHBOARD_OPEN:
+        webbrowser.open(url)
+
+    hub.publish(build_snapshot(group, turn=0))
+
+    hThread = ListenThread(group, hub)
     hThread.start()
+    hThread.join()
 
 
 def main():

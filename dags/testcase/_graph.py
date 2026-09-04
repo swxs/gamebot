@@ -14,12 +14,21 @@ def template_path(name: str) -> str:
 
 
 def bind_window(ctx):
-    ctx.pkg("desktop").bind_from_env()
+    try:
+        ctx.pkg("capture").bind_from_env()
+    except KeyError:
+        ctx.pkg("desktop").bind_from_env()
     return True
 
 
 def click_start(ctx):
-    return ctx.pkg("matcher").find_and_click(ctx.pkg("desktop"), template_path("start.png"))
+    matcher = ctx.pkg("matcher")
+    path = template_path("start.png")
+    try:
+        return matcher.find_and_click(ctx.pkg("capture"), ctx.pkg("desktop"), path)
+    except KeyError:
+        desktop = ctx.pkg("desktop")
+        return matcher.find_and_click(desktop, desktop, path)
 
 
 def finish(ctx):
@@ -33,9 +42,12 @@ def build_graph(group: Group):
     group >> bind >> start >> end
 
 
-def base_packages(desktop):
-    return {
+def base_packages(desktop, capture=None):
+    packages = {
         "desktop": desktop,
         "matcher": OpenCVMatcherPackage(),
         "clipboard": PyperclipPackage(),
     }
+    if capture is not None:
+        packages["capture"] = capture
+    return packages

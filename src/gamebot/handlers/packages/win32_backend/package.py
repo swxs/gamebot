@@ -24,11 +24,14 @@ class Win32BackendPackage:
     def bind_from_env(self):
         from gamebot import core
 
-        if core.NAME is None:
-            raise RuntimeError("NAME not set in environment")
-        hwnd = get_hwnd_with_name(core.NAME)
-        if hwnd == -1:
-            raise RuntimeError(f"window not found: {core.NAME!r}")
+        if core.NAME:
+            hwnd = get_hwnd_with_name(core.NAME)
+            if hwnd == -1:
+                raise RuntimeError(f"window not found: {core.NAME!r}")
+        else:
+            hwnd = win32gui.GetForegroundWindow()
+            if not hwnd:
+                raise RuntimeError("no foreground window to bind; set NAME or focus target window")
         return self.bind(hwnd)
 
     def _require_hwnd(self):

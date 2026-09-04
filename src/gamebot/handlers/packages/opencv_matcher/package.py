@@ -23,9 +23,18 @@ class OpenCVMatcherPackage:
         bottom_right = Point(pt[0] + w, pt[1] + h)
         return MatchResult(top_left=top_left, bottom_right=bottom_right)
 
-    def find_and_click(self, desktop_pkg, template_path: str, sens: float = 0.8) -> bool:
-        screen = desktop_pkg.capture()
+    def find_and_click(
+        self,
+        capture_pkg,
+        pointer_pkg,
+        template_path: str,
+        sens: float = 0.8,
+    ) -> bool:
+        screen = capture_pkg.capture()
         match = self.find(screen, template_path, sens=sens)
         if match is None:
             return False
-        return desktop_pkg.click(match.center)
+        point = match.center
+        if capture_pkg is not pointer_pkg and hasattr(capture_pkg, "client_to_screen"):
+            point = capture_pkg.client_to_screen(point)
+        return pointer_pkg.click(point)

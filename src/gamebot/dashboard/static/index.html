@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>gamebot dashboard</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --panel: #171b26;
+      --border: #2a3142;
+      --text: #e6eaf2;
+      --muted: #8b95a8;
+      --accent: #5b9cf5;
+      --active: #3dd68c;
+      --active-glow: rgba(61, 214, 140, 0.45);
+      --group: #7c6cf0;
+      --pending: #f5a623;
+      --stopped: #f07178;
+      --mono: "Cascadia Code", "Consolas", monospace;
+      --sans: "Segoe UI", system-ui, sans-serif;
+      --params-w: 320px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--sans); background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
+    .banner {
+      background: linear-gradient(90deg, #1a2233, #121820);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 16px;
+      display: flex; align-items: center; gap: 12px; font-size: 13px; flex-wrap: wrap;
+    }
+    .banner .meta { color: var(--muted); }
+    .banner .meta strong { color: var(--text); }
+    .banner .status { margin-left: auto; font-size: 12px; padding: 2px 10px; border-radius: 4px; background: rgba(61,214,140,0.15); color: var(--active); }
+    .banner .status.stopped { background: rgba(240,113,120,0.15); color: var(--stopped); }
+    .shell { display: flex; height: calc(100vh - 42px); overflow: hidden; }
+    .graph-pane { flex: 1; min-width: 0; display: flex; flex-direction: column; border-right: 1px solid var(--border); }
+    .graph-toolbar {
+      display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+      border-bottom: 1px solid var(--border); background: #131820; font-size: 12px;
+    }
+    .graph-toolbar span { color: var(--muted); margin-right: 4px; }
+    .mode-btn {
+      background: transparent; border: 1px solid var(--border); color: var(--muted);
+      padding: 4px 12px; border-radius: 6px; cursor: pointer; font-size: 12px;
+    }
+    .mode-btn:hover { color: var(--text); border-color: #4a5568; }
+    .mode-btn.active { background: rgba(91,156,245,0.15); border-color: var(--accent); color: var(--accent); }
+    .graph-zone { flex: 1; overflow: auto; display: flex; align-items: center; justify-content: center; padding: 24px; }
+    .graph-zone.tree-mode { align-items: flex-start; justify-content: flex-start; }
+    .params-pane {
+      width: var(--params-w); flex-shrink: 0; background: var(--panel);
+      display: flex; transition: width 0.25s ease; overflow: hidden;
+    }
+    .params-pane.collapsed { width: 28px; }
+    .params-collapse {
+      width: 28px; flex-shrink: 0; background: #1e2433; border: none; border-right: 1px solid var(--border);
+      color: var(--muted); cursor: pointer; font-size: 14px;
+    }
+    .params-collapse:hover { color: var(--text); background: #252b3d; }
+    .params-body { flex: 1; min-width: calc(var(--params-w) - 28px); display: flex; flex-direction: column; overflow: hidden; }
+    .params-head {
+      padding: 10px 14px; border-bottom: 1px solid var(--border); font-size: 11px;
+      font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em;
+    }
+    .params-scroll { overflow: auto; flex: 1; }
+    .node { fill: var(--panel); stroke: var(--border); stroke-width: 2; }
+    .node.group-box { fill: rgba(124,108,240,0.08); stroke: var(--group); stroke-dasharray: 6 4; }
+    .node.active { stroke: var(--active); stroke-width: 3; filter: drop-shadow(0 0 8px var(--active-glow)); }
+    .node.pending { stroke: var(--pending); stroke-width: 2.5; }
+    .node-label { fill: var(--text); font-size: 12px; font-family: var(--mono); text-anchor: middle; pointer-events: none; }
+    .node-label.sub { fill: var(--muted); font-size: 10px; }
+    .node-badge { fill: var(--active); font-size: 10px; font-weight: bold; text-anchor: middle; }
+    .edge { stroke: #4a5568; stroke-width: 2; fill: none; marker-end: url(#arrow-down); }
+    .edge.active-path { stroke: var(--accent); stroke-width: 2.5; }
+    .tree-node {
+      display: flex; align-items: center; gap: 8px; padding: 6px 10px; margin: 4px 0;
+      border-radius: 6px; border: 1px solid transparent; font-family: var(--mono); font-size: 13px;
+    }
+    .tree-node.active { background: rgba(61,214,140,0.12); border-color: var(--active); }
+    .tree-node .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); flex-shrink: 0; }
+    .tree-node.active .dot { background: var(--active); box-shadow: 0 0 6px var(--active-glow); }
+    .tree-node.group { color: var(--group); }
+    .tree-indent { border-left: 1px dashed var(--border); margin-left: 14px; padding-left: 8px; }
+    table.params { width: 100%; border-collapse: collapse; font-size: 13px; }
+    table.params th {
+      text-align: left; padding: 8px 14px; color: var(--muted); font-weight: 600; font-size: 11px;
+      text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; background: var(--panel);
+    }
+    table.params td { padding: 7px 14px; border-bottom: 1px solid #1e2433; font-family: var(--mono); word-break: break-all; }
+    table.params td.key { color: var(--accent); }
+    table.params td.src { color: var(--muted); font-size: 11px; }
+    table.params tr:hover td { background: rgba(255,255,255,0.02); }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.55} }
+    .pulse { animation: pulse 1.2s ease-in-out infinite; }
+  </style>
+</head>
+<body>
+  <header class="banner">
+    <span>gamebot dashboard</span>
+    <span class="meta">DAG: <strong id="dag-name">—</strong></span>
+    <span class="meta">turn: <strong id="turn-display">0</strong></span>
+    <span class="meta">current: <strong id="current-display">—</strong></span>
+    <span class="status" id="status-badge">运行中</span>
+  </header>
+  <div class="shell">
+    <section class="graph-pane">
+      <div class="graph-toolbar">
+        <span>图视图</span>
+        <button type="button" class="mode-btn active" id="btn-flow">流程图（上下）</button>
+        <button type="button" class="mode-btn" id="btn-tree">树形</button>
+      </div>
+      <div class="graph-zone" id="graph-zone"></div>
+    </section>
+    <aside class="params-pane" id="params-pane">
+      <button type="button" class="params-collapse" id="params-collapse" title="收起参数面板">›</button>
+      <div class="params-body" id="params-body">
+        <div class="params-head">Parameters</div>
+        <div class="params-scroll" id="params-scroll"></div>
+      </div>
+    </aside>
+  </div>
+  <script>
+    let graphData = null;
+    let snapshot = {};
+    let graphMode = "flow";
+    let paramsOpen = true;
+    let stopped = false;
+    let eventSource = null;
+
+    function fmt(v) {
+      if (v === null || v === undefined) return "—";
+      if (typeof v === "object") return JSON.stringify(v);
+      return String(v);
+    }
+
+    function formatNumber(n) {
+      return n === 0 ? "0 (∞)" : String(n);
+    }
+
+    function buildParamRows(s) {
+      const rows = [];
+      const env = s.env || {};
+      rows.push({ key: "NAME", value: fmt(env.NAME), src: "env" });
+      rows.push({ key: "NUMBER", value: formatNumber(env.NUMBER), src: "env" });
+      rows.push({ key: "DAG", value: fmt(env.DAG), src: "env" });
+      rows.push({ key: "PIX", value: fmt(env.PIX), src: "env" });
+      rows.push({ key: "turn", value: fmt(s.turn), src: "runtime" });
+      rows.push({ key: "pending", value: fmt(s.pending), src: "runtime" });
+      const pkgs = s.packages || {};
+      Object.keys(pkgs).sort().forEach(name => {
+        rows.push({ key: `packages.${name}`, value: pkgs[name], src: "setup" });
+      });
+      const vars = s.vars || {};
+      Object.keys(vars).sort().forEach(key => {
+        rows.push({ key, value: fmt(vars[key]), src: "ctx.vars" });
+      });
+      const active = s.vars_active || {};
+      const gname = s.vars_active_group;
+      if (gname) {
+        Object.keys(active).sort().forEach(key => {
+          rows.push({ key: `${gname}.${key}`, value: fmt(active[key]), src: `ctx.vars@${gname}` });
+        });
+      }
+      return rows;
+    }
+
+    function paramsTableHtml() {
+      const rows = buildParamRows(snapshot);
+      return `<table class="params"><thead><tr><th>Key</th><th>Value</th><th>Source</th></tr></thead><tbody>${
+        rows.map(r => `<tr><td class="key">${r.key}</td><td>${r.value}</td><td class="src">${r.src}</td></tr>`).join("")
+      }</tbody></table>`;
+    }
+
+    function nodeMeta(id) {
+      const dot = id.indexOf(".");
+      return { id, label: dot >= 0 ? id.slice(dot + 1) : id, group: dot >= 0 ? id.slice(0, dot) : graphData.root };
+    }
+
+    function topoOrder(g) {
+      const ids = new Set();
+      g.groups.forEach(gr => gr.nodes.forEach(n => ids.add(n.id)));
+      const indeg = Object.fromEntries([...ids].map(id => [id, 0]));
+      g.edges.forEach(e => { if (indeg[e.to] !== undefined) indeg[e.to]++; });
+      const q = [...ids].filter(id => indeg[id] === 0);
+      const order = [];
+      const adj = {};
+      g.edges.forEach(e => { (adj[e.from] ||= []).push(e.to); });
+      while (q.length) {
+        const id = q.shift();
+        order.push(id);
+        (adj[id] || []).forEach(nxt => {
+          indeg[nxt]--;
+          if (indeg[nxt] === 0) q.push(nxt);
+        });
+      }
+      [...ids].forEach(id => { if (!order.includes(id)) order.push(id); });
+      return order;
+    }
+
+    function layoutFlow(g) {
+      const order = topoOrder(g);
+      const groupParent = Object.fromEntries(g.groups.map(gr => [gr.name, gr.parent]));
+      const positions = {};
+      order.forEach((id, i) => {
+        const meta = nodeMeta(id);
+        const nested = groupParent[meta.group];
+        positions[id] = {
+          x: nested ? 260 : 120,
+          y: 24 + i * 72,
+          ...meta,
+        };
+      });
+      const boxes = [];
+      g.groups.forEach(gr => {
+        if (!gr.parent) return;
+        const ids = gr.nodes.map(n => n.id);
+        const pts = ids.map(id => positions[id]).filter(Boolean);
+        if (!pts.length) return;
+        const minX = Math.min(...pts.map(p => p.x)) - 12;
+        const maxX = Math.max(...pts.map(p => p.x)) + 112;
+        const minY = Math.min(...pts.map(p => p.y)) - 12;
+        const maxY = Math.max(...pts.map(p => p.y)) + 56;
+        boxes.push({ name: gr.name, x: minX, y: minY, w: maxX - minX, h: maxY - minY });
+      });
+      const maxY = Math.max(...Object.values(positions).map(p => p.y), 0) + 80;
+      const maxX = Math.max(...Object.values(positions).map(p => p.x), 0) + 140;
+      return { positions, boxes, w: Math.max(maxX, 360), h: Math.max(maxY, 200) };
+    }
+
+    function renderFlowGraph(cur, pending) {
+      if (!graphData) return "<p>加载图…</p>";
+      const { positions, boxes, w, h } = layoutFlow(graphData);
+      let svg = `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg"><defs>
+        <marker id="arrow-down" markerWidth="8" markerHeight="8" refX="4" refY="6" orient="auto"><path d="M0,0 L4,6 L8,0 Z" fill="#4a5568"/></marker></defs>`;
+      boxes.forEach(b => {
+        svg += `<rect class="node group-box" x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="8"/>
+          <text class="node-label" x="${b.x + 8}" y="${b.y + 16}" text-anchor="start" style="fill:var(--group);font-size:11px">${b.name}</text>`;
+      });
+      graphData.edges.forEach(e => {
+        const a = positions[e.from], b = positions[e.to];
+        if (!a || !b) return;
+        const active = e.from === cur || e.to === cur;
+        svg += `<line class="edge${active ? " active-path" : ""}" x1="${a.x + 50}" y1="${a.y + 44}" x2="${b.x + 50}" y2="${b.y}"/>`;
+      });
+      Object.values(positions).forEach(n => {
+        const isActive = n.id === cur;
+        const isPending = n.id === pending;
+        const cls = `node${isActive ? " active pulse" : ""}${isPending ? " pending" : ""}`;
+        svg += `<g transform="translate(${n.x},${n.y})"><rect class="${cls}" width="100" height="44" rx="8"/>
+          ${isActive ? `<text class="node-badge" x="90" y="12">▶</text>` : ""}
+          <text class="node-label" x="50" y="22">${n.label}</text>
+          <text class="node-label sub" x="50" y="36">${n.group}</text></g>`;
+      });
+      return svg + "</svg>";
+    }
+
+    function renderTree(cur) {
+      if (!graphData) return "<p>加载图…</p>";
+      const order = topoOrder(graphData);
+      const groupParent = Object.fromEntries(graphData.groups.map(gr => [gr.name, gr.parent]));
+      let html = '<div style="padding:12px;min-width:280px">';
+      let openGroup = null;
+      order.forEach(id => {
+        const meta = nodeMeta(id);
+        if (groupParent[meta.group] && meta.group !== openGroup) {
+          if (openGroup) html += "</div>";
+          html += `<div class="tree-node group"><span class="dot" style="background:var(--group)"></span>▸ ${meta.group}</div><div class="tree-indent">`;
+          openGroup = meta.group;
+        } else if (!groupParent[meta.group] && openGroup) {
+          html += "</div>";
+          openGroup = null;
+        }
+        const active = id === cur;
+        html += `<div class="tree-node${active ? " active" : ""}"><span class="dot"></span>${id}${active ? " ▶" : ""}</div>`;
+      });
+      if (openGroup) html += "</div>";
+      return html + "</div>";
+    }
+
+    function applySnapshot(s) {
+      snapshot = s;
+      document.getElementById("dag-name").textContent = s.dag || "—";
+      document.getElementById("turn-display").textContent = fmt(s.turn);
+      document.getElementById("current-display").textContent = fmt(s.current);
+      render();
+    }
+
+    function setStopped() {
+      if (stopped) return;
+      stopped = true;
+      if (eventSource) { eventSource.close(); eventSource = null; }
+      const badge = document.getElementById("status-badge");
+      badge.textContent = "已停止";
+      badge.classList.add("stopped");
+    }
+
+    function renderGraph() {
+      const cur = snapshot.current;
+      const pending = snapshot.pending;
+      const zone = document.getElementById("graph-zone");
+      zone.classList.toggle("tree-mode", graphMode === "tree");
+      zone.innerHTML = graphMode === "flow" ? renderFlowGraph(cur, pending) : renderTree(cur);
+    }
+
+    function renderParams() {
+      document.getElementById("params-scroll").innerHTML = paramsTableHtml();
+      document.getElementById("params-pane").classList.toggle("collapsed", !paramsOpen);
+      document.getElementById("params-body").style.display = paramsOpen ? "flex" : "none";
+      const btn = document.getElementById("params-collapse");
+      btn.textContent = paramsOpen ? "›" : "‹";
+    }
+
+    function render() {
+      renderGraph();
+      renderParams();
+      document.getElementById("btn-flow").classList.toggle("active", graphMode === "flow");
+      document.getElementById("btn-tree").classList.toggle("active", graphMode === "tree");
+    }
+
+    function connectStream() {
+      eventSource = new EventSource("/api/stream");
+      eventSource.onmessage = (ev) => {
+        try { applySnapshot(JSON.parse(ev.data)); } catch (_) {}
+      };
+      eventSource.onerror = () => setStopped();
+    }
+
+    async function init() {
+      const gRes = await fetch("/api/graph");
+      graphData = await gRes.json();
+      const sRes = await fetch("/api/snapshot");
+      applySnapshot(await sRes.json());
+      connectStream();
+    }
+
+    document.getElementById("btn-flow").addEventListener("click", () => { graphMode = "flow"; render(); });
+    document.getElementById("btn-tree").addEventListener("click", () => { graphMode = "tree"; render(); });
+    document.getElementById("params-collapse").addEventListener("click", () => { paramsOpen = !paramsOpen; renderParams(); });
+    init();
+  </script>
+</body>
+</html>

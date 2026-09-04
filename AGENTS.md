@@ -25,6 +25,7 @@ gamebot/
 └── src/gamebot/
     ├── cli.py
     ├── dag.py
+    ├── dashboard/              # CLI 本地浏览器 dashboard（SSE）
     ├── protocols/                # ScreenCapture、TemplateMatcher 等 Protocol
     ├── handlers/packages/        # pyauto_desktop、win32_backend、opencv_matcher…
     └── core/
@@ -34,19 +35,36 @@ gamebot/
 
 ## 环境配置
 
+复制 `.env.example` 为 `.env`（`.env` 已在 `.gitignore`，不提交）：
+
+```powershell
+copy .env.example .env
+```
+
 ```env
 NAME=窗口标题
 NUMBER=0
 DAG=testcase.pyauto_run
 PIX=
+DASHBOARD_PORT=8765
+DASHBOARD_OPEN=1
 ```
 
 | 变量 | 默认值 | 说明 |
 |------|--------|------|
-| `NAME` | `None` | 窗口标题；未设置时 cli 退出 |
+| `NAME` | `None` | 窗口标题；留空时 bind 节点绑定**当前前台窗口** |
 | `NUMBER` | `0` | 循环次数，`0` 无限 |
 | `DAG` | `testcase.pyauto_run` | 模块路径，如 `testcase.backend_run` |
 | `PIX` | `""` | 模板图子目录名 |
+| `DASHBOARD_PORT` | `8765` | dashboard HTTP 端口 |
+| `DASHBOARD_OPEN` | `False` | `1`/`true` 时启动 CLI 自动打开浏览器 |
+
+```env
+DASHBOARD_PORT=8765
+DASHBOARD_OPEN=1
+```
+
+启动 `gamebot` 后终端打印 `dashboard: http://127.0.0.1:8765/`；浏览器内实时显示 DAG 图与参数（SSE）。
 
 ## 依赖与运行
 
@@ -70,9 +88,9 @@ Optional extras：`[pyauto]`、`[win32]`、`[opencv]`、`[playwright]`、`[all]`
 | 安装 | `Group.setup({"packages": {...}, ...})` | 包名 → 实例 |
 | 访问 | `ctx.pkg("desktop")` | 链式向上查找，子 Group 可 shadow |
 
-P0 包：`pyauto_desktop`、`win32_backend`、`opencv_matcher`、`pyperclip_pkg`。
+P0 包：`pyauto_desktop`（鼠键）、`win32_window_capture`（窗口截图）、`win32_backend`、`opencv_matcher`、`pyperclip_pkg`。
 
-需 hwnd 的包：`PyAutoDesktopPackage.unbound()` → 节点内 `bind_from_env()`。
+需 hwnd 的包：`Win32WindowCapturePackage.unbound()` 或 `Win32BackendPackage.unbound()` → 节点内 `bind_from_env()`。`PyAutoDesktopPackage` 无 bind。
 
 ### DAG 状态图（`dag.py`）
 
@@ -83,10 +101,10 @@ P0 包：`pyauto_desktop`、`win32_backend`、`opencv_matcher`、`pyperclip_pkg`
 ### 图像识别流程
 
 ```python
-ctx.pkg("matcher").find_and_click(ctx.pkg("desktop"), template_path, sens=0.8)
+ctx.pkg("matcher").find_and_click(ctx.pkg("capture"), ctx.pkg("desktop"), template_path, sens=0.8)
 ```
 
-等价于 capture → find → click。
+等价于 capture → find → click（capture 客户区坐标，pyauto 点击前转屏幕坐标）。
 
 ## 常见任务
 
@@ -94,7 +112,7 @@ ctx.pkg("matcher").find_and_click(ctx.pkg("desktop"), template_path, sens=0.8)
 
 1. 在 `dags/<category>/` 创建模块，导出 `group` 与 `build_setup()`
 2. `build_setup()` 返回 `{"packages": {...}, ...}` 及业务 vars
-3. 首节点或前置节点：`bind_window` 调 `ctx.pkg("desktop").bind_from_env()`
+3. 首节点或前置节点：`bind_window` 绑定 `capture`（pyauto 路径）或 `desktop`（win32 backend 路径）
 4. 模板图放 `dags/<category>/files/<PIX>/`
 
 ### 调试
@@ -114,6 +132,7 @@ pytest tests/test_dag.py tests/test_packages.py
 ## 测试
 
 - `test_dag.py`：引擎 + `ctx.pkg`
+- `test_dashboard.py`：图序列化、快照、HTTP/SSE
 - `test_protocols.py`：Protocol isinstance
 - `test_packages.py`：mock bind / find / clipboard
 
@@ -127,20 +146,22 @@ pytest tests/test_dag.py tests/test_packages.py
 ```python
 from gamebot.dag import Group, Node
 from gamebot.handlers.packages.pyauto_desktop import PyAutoDesktopPackage
+from gamebot.handlers.packages.win32_window_capture import Win32WindowCapturePackage
 from gamebot.handlers.packages.opencv_matcher import OpenCVMatcherPackage
 
 
 def build_setup():
     return {
         "packages": {
-            "desktop": PyAutoDesktopPackage.unbound(),
+            "desktop": PyAutoDesktopPackage(),
+            "capture": Win32WindowCapturePackage.unbound(),
             "matcher": OpenCVMatcherPackage(),
         },
     }
 
 
 def bind_window(ctx):
-    ctx.pkg("desktop").bind_from_env()
+    ctx.pkg("capture").bind_from_env()
     return True
 
 

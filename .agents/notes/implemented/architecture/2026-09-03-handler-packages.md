@@ -11,10 +11,10 @@ Handler 层为单体 `Base` 类 + `Productor` 工厂 + `HANDLER` 环境变量选
 - **Protocol** 定义能力契约（`gamebot/protocols/`，7 个 Protocol + `types.py`）
 - **Package** 组合实现 Protocol（`gamebot/handlers/packages/<name>/`）
 - **Group.setup(vars)** 含 `packages` 字典；**Context.pkg(name)** 链式查找，与业务 vars 分离
-- **cli** 只调 `module.build_setup()`，不参与包装配；**hwnd** 由节点 `ctx.pkg("desktop").bind_from_env()` 触发
+- **cli** 只调 `module.build_setup()`，不参与包装配；**hwnd** 由节点 `bind_from_env()` 触发（pyauto 路径绑 `capture`，backend 绑 `desktop`）
 - **Breaking**：删除 `Base`、Productor、`HANDLER`；DAG 通过 `ctx.pkg()` 使用能力
-- **P0 四包**：`pyauto_desktop`、`win32_backend`、`opencv_matcher`、`pyperclip_pkg`
-- **找图点击**：`opencv_matcher.find_and_click(desktop, template_path)` 替代 `find_ellement_and_click`
+- **P0 五包**：`pyauto_desktop`（鼠键）、`win32_window_capture`（截图）、`win32_backend`、`opencv_matcher`、`pyperclip_pkg`
+- **找图点击**：`find_and_click(capture, pointer, template_path)` — 见 [ScreenCapture 与 PyAuto 拆分](2026-09-04-screen-capture-split.md)
 
 ## Alternatives considered
 
@@ -35,3 +35,4 @@ ticket 01 已切断 cli→handler 路径；facade 与 `ctx.pkg` 双轨并存，�
 - **破坏性变更**：DAG 必须 `build_setup()` + `ctx.pkg()`；旧 `(handler, hwnd)` 与 `HANDLER` 配置失效
 - **测试**：分层 pytest（dag pkg、protocol、package mock）；E2E 人工 smoke（`testcase/pyauto_run`、`backend_run`）
 - **BrowserAutomation**：Protocol stub 已建，playwright 包留后续
+- **CLI dashboard**：[CLI 本地 Dashboard](2026-09-04-cli-dashboard.md)
