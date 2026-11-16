@@ -8,12 +8,29 @@ gamebot 是一个 **Windows 平台的游戏自动化脚本框架**。通过图�
 
 核心思路：
 
-1. 用 `.env` 配置目标窗口、DAG 模块、模板图子目录
-2. DAG 在 `build_setup()` 中安装 Handler **Package**（pyauto / win32 backend / opencv matcher 等）
-3. 节点通过 `ctx.pkg(name)` 调用 Protocol 能力；窗口绑定由显式节点 `bind_from_env()` 完成
-4. DAG 用状态图描述流程（`Group` / `Node` + `>>`）；`gamebot` CLI 循环执行直到 `NUMBER` 次
+1. 入口只接收 DAG 模块路径：`gamebot example.todomvc`
+2. 启动参数写在该模块的 `build_setup()` 里，不读 dotenv
+3. DAG 在 `build_setup()` 中安装 Handler **Package**（pyauto / win32 / opencv / playwright 等）
+4. 节点通过 `ctx.pkg(name)` 调用 Protocol 能力；桌面窗口由 `bind_title(title)` 绑定，标题不来自 `name`
+5. DAG 用状态图描述流程（`Group` / `Node` + `>>`）；CLI 按 `number` 跑有限次，并写下跑通产物
 
 **平台限制**：仅支持 Windows（依赖 `pywin32`、`pyautogui` 等）。
+
+## 编写合同
+
+DAG 作者（主要是大模型）可以依赖这些规则。
+
+- 模块导出 `group` 与 `build_setup()`。`build_setup()` 返回 dict。
+- 入口只有模块路径。`name` 是运行名字，必填、非空，不用来找窗口。
+- 启动键：`name`、`number`（省略为 1，小于 1 拒绝启动）、`pix`（省略为 `""`）、`dashboard_port`（省略为 8765）、`dashboard_open`（省略为否）。
+- 节点 `(ctx) -> bool`。返回 `false` 即这次失败。框架不在节点失败后自动重试。
+- 要操作桌面窗口时，节点调用 `bind_title(title)`。浏览器示例不绑定桌面窗口。
+- 桌面能力：截图、找图点击、区域内查找、`find_all`（没有则空列表）、`wait`（默认 10 秒、每 0.5 秒，超时返回 `None`）、双击、拖拽、滚轮、组合键、屏幕 OCR、Windows 控件树（含控件文字）、剪贴板、窗口焦点。四角失败保护只停真实光标。
+- 找不到目标时，`find_all`、屏幕 OCR、控件树给空结果，不因此让节点失败。等到出现的超时，以及浏览器动作或浏览器断言不成立，算这次失败。
+- 浏览器能力与找图点击并列，走 `ctx.pkg("browser")`：打开网址，按选择器或 `{by, value, name}` 填写、点击、按键、拖拽。`by` 可以是 `role`、`text`、`label`、`placeholder`、`alt`、`title`、`test_id`、`css`。含动作前等待、浏览器断言和 trace。trace 不是跑通判据。
+- 每步把产物写到 `runs/<name>/`：`previous.png`（没有上一步则为空）、`current.png`、`tree.txt`、`steps.json`（最近 5 步）。有已打开的浏览器页面时，`current.png` 用页面截图，否则用已绑定窗口的客户区。页面是否走完以这两张图为准。
+- 浏览器示例：`gamebot example.todomvc`。`name` 为 `TodoMVC`，`number` 为 1。人把 `https://demo.playwright.dev/todomvc` 摆到空列表；走完是指当前客户区上恰好有一条「跑通」。控件树里没有这几个字，不单独判失败。
+- pytest 测引擎。真实窗口和真实 Chromium 不是测试门禁。
 
 ## 目录结构
 
@@ -27,51 +44,28 @@ gamebot/
     ├── dag.py
     ├── dashboard/              # CLI 本地浏览器 dashboard（SSE）
     ├── protocols/                # ScreenCapture、TemplateMatcher 等 Protocol
-    ├── handlers/packages/        # 栈级 Package + Handler（win32、pyauto、opencv、pyperclip）
+    ├── handlers/packages/        # 栈级 Package + Handler（win32、pyauto、opencv、pyperclip、playwright）
     └── core/
 ```
 
-模板图路径：`dags/<category>/files/<PIX>/`，可用 `core.path.dag_files_dir(category, PIX)`。
+模板图路径：`dags/<category>/files/<pix>/`，`pix` 来自 `ctx.get("pix")`，用 `dag_files_dir(category, pix)`。
 
 ## 环境配置
 
-复制 `.env.example` 为 `.env`（`.env` 已在 `.gitignore`，不提交）：
+不读 `.env`。启动：
 
 ```powershell
-copy .env.example .env
+gamebot example.todomvc
 ```
 
-```env
-NAME=窗口标题
-NUMBER=0
-DAG=testcase.pyauto_run
-PIX=
-DASHBOARD_PORT=8765
-DASHBOARD_OPEN=1
-```
-
-| 变量 | 默认值 | 说明 |
-|------|--------|------|
-| `NAME` | `None` | 窗口标题；留空时 bind 节点绑定**当前前台窗口** |
-| `NUMBER` | `0` | 循环次数，`0` 无限 |
-| `DAG` | `testcase.pyauto_run` | 模块路径，如 `testcase.backend_run` |
-| `PIX` | `""` | 模板图子目录名 |
-| `DASHBOARD_PORT` | `8765` | dashboard HTTP 端口 |
-| `DASHBOARD_OPEN` | `False` | `1`/`true` 时启动 CLI 自动打开浏览器 |
-
-```env
-DASHBOARD_PORT=8765
-DASHBOARD_OPEN=1
-```
-
-启动 `gamebot` 后终端打印 `dashboard: http://127.0.0.1:8765/`；浏览器内实时显示 DAG 图与参数（SSE）。
+终端打印 `dashboard: http://127.0.0.1:8765/`。dashboard 给人看运行，模型看 `runs/<name>/` 里的产物。
 
 ## 依赖与运行
 
 ```bash
 uv venv .venv
 uv pip install -e ".[dev]"
-gamebot
+gamebot example.todomvc
 pytest
 ```
 
@@ -89,11 +83,11 @@ Optional extras：`[pyauto]`、`[win32]`、`[opencv]`、`[playwright]`、`[all]`
 | 安装 | `Group.setup({"packages": {...}, ...})` | pkg 名 → Handler 实例；自动 `check_packages` |
 | 访问 | `ctx.pkg("desktop")` | 链式向上查找，子 Group 可 shadow |
 
-P0 栈：`pyauto`（鼠键）、`win32`（backend / capture）、`opencv`（matcher）、`pyperclip`（clipboard）。
+P0 栈：`pyauto`（鼠键）、`win32`（backend / capture / controls / ocr）、`opencv`（matcher）、`pyperclip`（clipboard）、`playwright`（chromium，optional extra）。
 
 同 Protocol 多实现：多个 pkg 键（如 `pointer_direct` / 未来 `pointer_human`）。同栈多 Handler 共享一次 `check_deps`（如 backend + capture 均属 `Win32Package`）。
 
-需 hwnd：`Win32Package.install_capture()` 或 `install_backend()` → 节点内 `bind_from_env()`。`PyAutoPackage.install_pointer_direct()` 无 bind。
+需 hwnd：`Win32Package.install_capture()`、`install_backend()` 或 `install_controls()` → 节点内 `bind_title(title)`。`PyAutoPackage.install_pointer_direct()` 无 bind。浏览器包不绑定桌面窗口。
 
 ### DAG 状态图（`dag.py`）
 
@@ -114,9 +108,9 @@ ctx.pkg("matcher").find_and_click(ctx.pkg("capture"), ctx.pkg("desktop"), templa
 ### 新增 DAG
 
 1. 在 `dags/<category>/` 创建模块，导出 `group` 与 `build_setup()`
-2. `build_setup()` 返回 `{"packages": {...}, ...}` 及业务 vars
-3. 首节点或前置节点：`bind_window` 绑定 `capture`（pyauto 路径）或 `desktop`（win32 backend 路径）
-4. 模板图放 `dags/<category>/files/<PIX>/`
+2. `build_setup()` 返回 `name` 和 `{"packages": {...}, ...}`。桌面流程另放业务键 `window` 作为 `bind_title` 的标题
+3. 桌面 DAG 的首节点调用 `bind_title`。浏览器 DAG 不绑定窗口
+4. 模板图放 `dags/<category>/files/<pix>/`
 
 ### 调试
 
@@ -137,7 +131,10 @@ pytest tests/test_dag.py tests/test_packages.py
 - `test_dag.py`：引擎 + `ctx.pkg`
 - `test_dashboard.py`：图序列化、快照、HTTP/SSE
 - `test_protocols.py`：Protocol isinstance
-- `test_packages.py`：mock bind / find / clipboard
+- `test_packages.py`：mock bind / find / clipboard / OCR
+- `test_evidence.py`：产物只留最近 5 步
+- `test_browser.py`：假页面上的浏览器调用
+- `test_cli.py`：模块加载与启动参数校验
 
 ## Git 与提交
 
@@ -155,6 +152,8 @@ from gamebot.handlers.packages.opencv import OpenCVPackage
 
 def build_setup():
     return {
+        "name": "main",
+        "window": "窗口标题",
         "packages": {
             "desktop": PyAutoPackage.install_pointer_direct(),
             "capture": Win32Package.install_capture(),
@@ -164,7 +163,7 @@ def build_setup():
 
 
 def bind_window(ctx):
-    ctx.pkg("capture").bind_from_env()
+    ctx.pkg("capture").bind_title(ctx.get("window"))
     return True
 
 

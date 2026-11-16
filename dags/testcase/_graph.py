@@ -2,28 +2,31 @@
 
 import os
 
-from gamebot import core
 from gamebot.core.path import dag_files_dir
 from gamebot.dag import Group, Node
 from gamebot.handlers.packages.opencv import OpenCVPackage
 from gamebot.handlers.packages.pyperclip import PyperclipPackage
 
 
-def template_path(name: str) -> str:
-    return os.path.join(dag_files_dir("testcase", core.PIX), name)
+def template_path(ctx, name: str) -> str:
+    return os.path.join(dag_files_dir("testcase", ctx.get("pix") or ""), name)
 
 
 def bind_window(ctx):
+    title = ctx.get("window") or ""
+    if not title:
+        return False
     try:
-        ctx.pkg("capture").bind_from_env()
+        target = ctx.pkg("capture")
     except KeyError:
-        ctx.pkg("desktop").bind_from_env()
+        target = ctx.pkg("desktop")
+    target.bind_title(title)
     return True
 
 
 def click_start(ctx):
     matcher = ctx.pkg("matcher")
-    path = template_path("start.png")
+    path = template_path(ctx, "start.png")
     try:
         return matcher.find_and_click(ctx.pkg("capture"), ctx.pkg("desktop"), path)
     except KeyError:

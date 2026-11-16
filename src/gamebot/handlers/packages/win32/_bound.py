@@ -1,7 +1,5 @@
 """Win32 handler 共享：hwnd 绑定。"""
 
-import win32gui
-
 from gamebot.handlers.packages._hwnd import get_hwnd_with_name
 
 
@@ -17,20 +15,15 @@ class Win32BoundMixin:
         self._hwnd = hwnd
         return self
 
-    def bind_from_env(self):
-        from gamebot import core
-
-        if core.NAME:
-            hwnd = get_hwnd_with_name(core.NAME)
-            if hwnd == -1:
-                raise RuntimeError(f"window not found: {core.NAME!r}")
-        else:
-            hwnd = win32gui.GetForegroundWindow()
-            if not hwnd:
-                raise RuntimeError("no foreground window to bind; set NAME or focus target window")
+    def bind_title(self, title: str):
+        if not isinstance(title, str) or title.strip() == "":
+            raise RuntimeError("window title must be a non-empty string")
+        hwnd = get_hwnd_with_name(title)
+        if hwnd == -1:
+            raise RuntimeError(f"window not found: {title!r}")
         return self.bind(hwnd)
 
     def _require_hwnd(self):
         if self._hwnd is None or self._hwnd == -1:
-            raise RuntimeError("handler not bound; call bind() or bind_from_env() first")
+            raise RuntimeError("handler not bound; call bind() or bind_title() first")
         return self._hwnd

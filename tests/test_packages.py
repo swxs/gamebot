@@ -40,14 +40,19 @@ def test_capture_unbound_raises():
         pkg.capture()
 
 
-def test_capture_bind_from_env(monkeypatch):
-    monkeypatch.setattr("gamebot.core.NAME", "TestWindow")
+def test_capture_bind_title(monkeypatch):
     monkeypatch.setattr(
         "gamebot.handlers.packages.win32._bound.get_hwnd_with_name",
-        lambda name: 12345,
+        lambda name: 12345 if name == "TestWindow" else -1,
     )
-    pkg = Win32Package.install_capture().bind_from_env()
+    pkg = Win32Package.install_capture().bind_title("TestWindow")
     assert pkg._hwnd == 12345
+
+
+def test_capture_bind_title_rejects_empty():
+    pkg = Win32Package.install_capture()
+    with pytest.raises(RuntimeError, match="non-empty"):
+        pkg.bind_title("")
 
 
 def test_opencv_find(tmp_path):
@@ -126,3 +131,57 @@ def test_check_packages_dedupes_stack():
 
     check_packages({"a": _Handler(), "b": _Handler()})
     assert len(seen) == 1
+
+
+def test_find_all_and_region(tmp_path):
+    import cv2
+
+    from gamebot.protocols.types import Rect
+
+    pattern = np.zeros((12, 12, 3), dtype=np.uint8)
+    pattern[0:6, 0:6] = (255, 0, 0)
+    pattern[6:12, 6:12] = (0, 255, 0)
+    pattern[0:6, 6:12] = (0, 0, 255)
+    screen = np.zeros((100, 100, 3), dtype=np.uint8)
+    screen[10:22, 10:22] = pattern
+    screen[70:82, 70:82] = pattern
+    template_path = tmp_path / "mark.png"
+    cv2.imwrite(str(template_path), pattern)
+    matcher = OpenCVPackage.install_matcher()
+    hits = matcher.find_all(screen, str(template_path), sens=0.99)
+    assert len(hits) == 2
+    missed = matcher.find(screen, str(template_path), sens=0.99, region=Rect(0, 0, 8, 8))
+    assert missed is None
+    found = matcher.find(screen, str(template_path), sens=0.99, region=Rect(8, 8, 20, 20))
+    assert found is not None
+    assert found.top_left.x >= 8
+
+
+def test_wait_timeout_returns_none():
+    matcher = OpenCVPackage.install_matcher()
+    matcher.find = lambda *args, **kwargs: None
+
+    class _Blank:
+        def capture(self):
+            return np.zeros((20, 20, 3), dtype=np.uint8)
+
+    assert matcher.wait(_Blank(), "unused.png", timeout=0, interval=5) is None
+
+
+def test_ocr_empty_result():
+    from gamebot.protocols.types import OcrHit, Rect
+
+    image = np.zeros((4, 4, 3), dtype=np.uint8)
+    handler = Win32Package.install_ocr()
+    handler._recognize = lambda _image: [OcrHit("跑通", Rect(1, 2, 3, 4))]
+    assert handler.find_text(image, "没有") is None
+    assert handler.find_text(image, "跑").text == "跑通"
+    handler._recognize = lambda _image: []
+    assert handler.read(image) == []
+
+
+def test_controls_reads_injected_dump():
+    handler = Win32Package.install_controls()
+    handler._hwnd = 7
+    handler._dump = lambda hwnd: f"按钮 {hwnd}"
+    assert handler.read_tree() == "按钮 7"

@@ -45,10 +45,49 @@ def test_run_requires_build_setup(monkeypatch):
         group = Group(name="x")
 
     monkeypatch.setattr("gamebot.cli.load_dag_module", lambda spec: FakeModule())
-    monkeypatch.setattr("gamebot.core.NAME", "w")
-    monkeypatch.setattr("gamebot.core.DAG", "sample.run")
 
     from gamebot.cli import run
 
     with pytest.raises(AttributeError, match="build_setup"):
-        run()
+        run("sample.run")
+
+
+def test_resolve_setup_defaults_and_rejects():
+    from gamebot.core.config import SetupError, resolve_setup
+
+    resolved = resolve_setup({"name": "TodoMVC", "packages": {}}, "example.todomvc")
+    assert resolved["name"] == "TodoMVC"
+    assert resolved["number"] == 1
+    assert resolved["pix"] == ""
+    assert resolved["dashboard_port"] == 8765
+    assert resolved["dashboard_open"] is False
+    assert resolved["dag"] == "example.todomvc"
+
+    with pytest.raises(SetupError, match="name"):
+        resolve_setup({}, "example.todomvc")
+    with pytest.raises(SetupError, match="number"):
+        resolve_setup({"name": "n", "number": 0}, "example.todomvc")
+
+
+def test_main_requires_one_module_path():
+    from gamebot.cli import main
+
+    with pytest.raises(SystemExit) as exc:
+        main([])
+    assert exc.value.code == 2
+
+
+def test_listen_stops_after_one_pass_without_end_node():
+    from gamebot.cli import ListenThread
+    from gamebot.core.config import resolve_setup
+    from gamebot.dag import Group, Node
+    from gamebot.dashboard import StateHub
+
+    group = Group(name="g")
+    with group as group:
+        group >> Node("work", lambda ctx: True)
+    group.setup(resolve_setup({"name": "listen-once"}, "example.once"))
+    thread = ListenThread(group, StateHub())
+    thread.evidence = type("W", (), {"write": lambda self, group, step: None})()
+    thread.run()
+    assert thread.turn == 1

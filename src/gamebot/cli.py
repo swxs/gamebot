@@ -1,9 +1,11 @@
 import importlib.util
 import os
+import sys
 import threading
 import webbrowser
 
-from gamebot import core
+from gamebot.core.config import SetupError, resolve_setup
+from gamebot.core.evidence import EvidenceWriter
 from gamebot.core.path import PROJECT_ROOT
 from gamebot.dashboard import StateHub, build_snapshot, serialize_graph, start_dashboard
 
@@ -29,46 +31,60 @@ class ListenThread(threading.Thread):
         self.hub = hub
         self.stopped = False
         self.turn = 0
+        safe = "".join(ch if ch not in '<>:"/\\|?*' else "_" for ch in (group.get("name") or "run"))
+        self.evidence = EvidenceWriter(os.path.join(PROJECT_ROOT, "runs", safe))
 
     def run(self):
+        number = self.group.get("number")
         while not self.stopped:
             for step in self.group:
                 print(step)
+                self.evidence.write(self.group, step)
                 self.hub.publish(build_snapshot(self.group, turn=self.turn))
-                if step == "end":
-                    self.turn += 1
-                    print(self.turn)
-                    if self.turn == core.NUMBER:
-                        self.stopped = True
-
                 if self.stopped:
                     break
+            if self.stopped:
+                break
+            self.turn += 1
+            print(self.turn)
+            if self.turn == number:
+                self.stopped = True
 
 
-def run():
-    module = load_dag_module(core.DAG)
+def run(dag_spec: str):
+    module = load_dag_module(dag_spec)
     if not hasattr(module, "build_setup"):
-        raise AttributeError(f"DAG module {core.DAG!r} must export build_setup()")
+        raise AttributeError(f"DAG module {dag_spec!r} must export build_setup()")
 
+    setup = resolve_setup(module.build_setup(), dag_spec)
     group = module.group
-    group.setup(module.build_setup())
+    group.setup(setup)
 
     hub = StateHub()
     graph = serialize_graph(group)
-    url = start_dashboard(hub, graph, port=core.DASHBOARD_PORT)
+    port = group.get("dashboard_port")
+    url = start_dashboard(hub, graph, port=port)
     print(f"dashboard: {url}")
-    if core.DASHBOARD_OPEN:
+    if group.get("dashboard_open"):
         webbrowser.open(url)
 
     hub.publish(build_snapshot(group, turn=0))
 
-    hThread = ListenThread(group, hub)
-    hThread.start()
-    hThread.join()
+    thread = ListenThread(group, hub)
+    thread.start()
+    thread.join()
 
 
-def main():
-    run()
+def main(argv=None):
+    args = list(sys.argv[1:] if argv is None else argv)
+    if len(args) != 1:
+        print("用法: gamebot <模块路径>", file=sys.stderr)
+        raise SystemExit(2)
+    try:
+        run(args[0])
+    except SetupError as exc:
+        print(str(exc), file=sys.stderr)
+        raise SystemExit(2)
 
 
 if __name__ == "__main__":

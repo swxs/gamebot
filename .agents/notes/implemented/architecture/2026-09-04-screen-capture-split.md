@@ -9,7 +9,7 @@ Status: implemented
 ## Decision
 
 - **`pyauto` 栈 / `PyAutoPointerDirectHandler`**：仅 `PointerInput` + `KeyboardInput`，无 bind、无 capture
-- **`win32` 栈 / `Win32CaptureHandler`**：`ScreenCapture` — BitBlt 客户区；`bind_from_env()`（`NAME` 或前台窗口）；`client_to_screen()`
+- **`win32` 栈 / `Win32CaptureHandler`**：`ScreenCapture` — BitBlt 客户区；`bind_title(title)`；`client_to_screen()`
 - **`win32` 栈 / `Win32BackendHandler`**：backend 路径合一实现 WindowControl + ScreenCapture + Clipboard + Keyboard
 - **`opencv` 栈 / `OpenCVMatcherHandler.find_and_click(capture, pointer, …)`**：capture → find → 必要时 `client_to_screen` → click；capture 与 pointer 同一实例时跳过坐标转换
 - **testcase**：pyauto 路径 `PyAutoPackage.install_pointer_direct()` + `Win32Package.install_capture()`；backend 路径 `Win32Package.install_backend()`

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional, Set
 
-from gamebot import core
 from gamebot.dag import Group, Node, resolve_entry_node
 
 
@@ -94,7 +93,6 @@ def build_snapshot(root: Group, turn: int = 0) -> dict:
         for name, pkg in sorted(root._packages.items())
     }
 
-    number_display = core.NUMBER
     return {
         "dag": root.name,
         "turn": turn,
@@ -104,10 +102,10 @@ def build_snapshot(root: Group, turn: int = 0) -> dict:
         "vars_active": vars_active,
         "vars_active_group": vars_active_group,
         "env": {
-            "NAME": core.NAME,
-            "NUMBER": number_display,
-            "DAG": core.DAG,
-            "PIX": core.PIX,
+            "NAME": root.get("name"),
+            "NUMBER": root.get("number"),
+            "DAG": root.get("dag"),
+            "PIX": root.get("pix"),
         },
         "packages": packages,
     }

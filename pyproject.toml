@@ -4,13 +4,14 @@ version = "0.1.0"
 description = "Windows 游戏自动化脚本框架"
 requires-python = ">=3.11"
 dependencies = [
-    "environs",
     "opencv-python",
     "pyautogui",
     "mss",
     "pywin32",
     "numpy",
     "pyperclip",
+    "pywinauto",
+    "winsdk",
 ]
 
 [project.optional-dependencies]
@@ -23,6 +24,8 @@ pyauto = [
 ]
 win32 = [
     "pywin32",
+    "pywinauto",
+    "winsdk",
 ]
 opencv = [
     "opencv-python",
@@ -38,6 +41,8 @@ all = [
     "opencv-python",
     "numpy",
     "pyperclip",
+    "pywinauto",
+    "winsdk",
     "playwright",
 ]
 

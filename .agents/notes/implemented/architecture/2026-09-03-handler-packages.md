@@ -26,7 +26,7 @@ handlers/packages/
   _hwnd.py             # win32 窗口查找共享
   win32/
     package.py         # Win32Package — check_deps + install_backend / install_capture
-    _bound.py          # Win32BoundMixin（bind_from_env）
+    _bound.py          # Win32BoundMixin（bind_title）
     backend.py         # Win32BackendHandler — WindowControl + ScreenCapture + Clipboard + Keyboard
     capture.py         # Win32CaptureHandler — ScreenCapture
   pyauto/

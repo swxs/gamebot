@@ -20,6 +20,12 @@ class Rect:
 
 
 @dataclass(frozen=True)
+class OcrHit:
+    text: str
+    rect: Rect
+
+
+@dataclass(frozen=True)
 class MatchResult:
     top_left: Point
     bottom_right: Point

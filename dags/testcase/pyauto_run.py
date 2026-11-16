@@ -20,6 +20,8 @@ _graph = _load_graph()
 
 def build_setup():
     return {
+        "name": "testcase-pyauto",
+        "window": "",
         "packages": _graph.base_packages(
             PyAutoPackage.install_pointer_direct(),
             Win32Package.install_capture(),

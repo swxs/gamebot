@@ -1,6 +1,8 @@
 from gamebot.handlers.packages._package import Package
 from gamebot.handlers.packages.win32.backend import Win32BackendHandler
 from gamebot.handlers.packages.win32.capture import Win32CaptureHandler
+from gamebot.handlers.packages.win32.controls import Win32ControlsHandler
+from gamebot.handlers.packages.win32.ocr import Win32OcrHandler
 
 
 class Win32Package(Package):
@@ -19,6 +21,16 @@ class Win32Package(Package):
     def install_capture(cls):
         return Win32CaptureHandler.unbound()
 
+    @classmethod
+    def install_controls(cls):
+        return Win32ControlsHandler.unbound()
+
+    @classmethod
+    def install_ocr(cls):
+        return Win32OcrHandler()
+
 
 Win32BackendHandler.__package__ = Win32Package
 Win32CaptureHandler.__package__ = Win32Package
+Win32ControlsHandler.__package__ = Win32Package
+Win32OcrHandler.__package__ = Win32Package

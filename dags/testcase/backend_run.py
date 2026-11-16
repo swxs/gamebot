@@ -18,7 +18,11 @@ _graph = _load_graph()
 
 
 def build_setup():
-    return {"packages": _graph.base_packages(Win32Package.install_backend())}
+    return {
+        "name": "testcase-backend",
+        "window": "",
+        "packages": _graph.base_packages(Win32Package.install_backend()),
+    }
 
 
 group = Group(name="testcase_backend")

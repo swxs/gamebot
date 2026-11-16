@@ -15,7 +15,7 @@ CLI 仅打印节点名，运行中无法感知 DAG 拓扑、当前节点与 vars
 - **快照**：`current`/`pending` 为 `group.node`；vars 含 root + 当前节点所属 Group 本地 vars
 - **图序列化**：隐藏 `__start`；嵌套 Group 流程图用虚线容器
 - **生命周期**：HTTP 随 CLI 始终启；`DASHBOARD_OPEN=1` 才 `webbrowser.open`；断流冻结 + 顶栏「已停止」；`DASHBOARD_PORT` 默认 8765、占用即失败
-- **配置**：`.env.example` 模板；`.env` 不提交
+- **配置**：启动参数来自该 DAG 的 `build_setup()`，不读 `.env`
 
 ## Alternatives considered
 

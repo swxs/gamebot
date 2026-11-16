@@ -21,7 +21,16 @@ class _FakePointer:
     def click(self, point):
         return True
 
+    def double_click(self, point):
+        return True
+
     def right_click(self, point):
+        return True
+
+    def drag(self, start, end, duration=0.2):
+        return True
+
+    def scroll(self, point, clicks):
         return True
 
 
@@ -32,9 +41,18 @@ class _FakeKeyboard:
     def type_text(self, text):
         return True
 
+    def hotkey(self, *keys):
+        return True
+
 
 class _FakeMatcher:
-    def find(self, screen, template_path, sens=0.8):
+    def find(self, screen, template_path, sens=0.8, region=None):
+        return None
+
+    def find_all(self, screen, template_path, sens=0.8, region=None):
+        return []
+
+    def wait(self, capture, template_path, sens=0.8, timeout=10, interval=0.5, region=None):
         return None
 
 
